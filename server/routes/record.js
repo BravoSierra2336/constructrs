@@ -28,13 +28,26 @@ router.get("/:id", async (req, res) => {
   else res.send(result).status(200);
 });
 
+// To GET record by jobname
+router.get("/jobname/:jobname", async (req, res) => {
+  let collection = await db.collection("records");
+  let query = { jobclient: req.params.jobname };
+  let results = await collection.find(query).toArray();
+
+  if (results.length === 0) {
+    res.send("No records found").status(404);
+  } else {
+    res.send(results).status(200);
+  }
+});
 // This section will help you create a new record.
 router.post("/", async (req, res) => {
   try {
     let newDocument = {
-      name: req.body.name,
-      position: req.body.position,
-      level: req.body.level,
+      sitename: req.body.sitename,
+      location: req.body.location,
+      jobclient: req.body.jobclient,
+      jobcontractor: req.body.jobcontractor,
     };
     let collection = await db.collection("records");
     let result = await collection.insertOne(newDocument);
@@ -51,9 +64,11 @@ router.patch("/:id", async (req, res) => {
     const query = { _id: new ObjectId(req.params.id) };
     const updates = {
       $set: {
-        name: req.body.name,
-        position: req.body.position,
-        level: req.body.level,
+      sitename: req.body.sitename,
+      location: req.body.location,
+      jobclient: req.body.jobclient,
+      jobcontractor: req.body.jobcontractor,
+      latestreport: req.body.latestreport,
       },
     };
 
@@ -80,5 +95,22 @@ router.delete("/:id", async (req, res) => {
     res.status(500).send("Error deleting record");
   }
 });
+// This section will update the latest report
+router.patch("/latest", async (req, res) => {
+  try {
+    const query = { _id: new ObjectId(req.body.id) };
+    const updates = {
+      $set: {
+        latestReport: req.body.latestReport,
+      },
+    };
 
+    let collection = await db.collection("records");
+    let result = await collection.updateOne(query, updates);
+    res.send(result).status(200);
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("Error updating latest report");
+  }
+});
 export default router;
