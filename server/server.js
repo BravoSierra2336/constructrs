@@ -1,13 +1,9 @@
-import express from "express";
-import cors from "cors";
-import records from "./routes/record.js";
-const PORT=5050
+import dotenv from 'dotenv';
+dotenv.config();
 
-const app = express();
+import app from "./app.js";
 
-app.use(cors());
-app.use(express.json());
-app.use("/record", records);
+const PORT = process.env.PORT || 5050;
 
 // start the Express server
 app.listen(PORT, () => {
