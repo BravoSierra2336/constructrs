@@ -1,5 +1,22 @@
 import { ObjectId } from "mongodb";
-import db from "../db/connection.js";
+import { getDatabase } from "../db/connection.js";
+
+// Helper function to get database collections
+const getProjectsCollection = async () => {
+  const database = await getDatabase();
+  if (!database) {
+    throw new Error("Database connection not available");
+  }
+  return database.collection("projects");
+};
+
+const getReportsCollection = async () => {
+  const database = await getDatabase();
+  if (!database) {
+    throw new Error("Database connection not available");
+  }
+  return database.collection("reports");
+};
 
 class Project {
   constructor(projectData) {
@@ -36,18 +53,21 @@ class Project {
       errors.push("End date cannot be before start date");
     }
 
-    return errors;
+    return {
+      isValid: errors.length === 0,
+      errors: errors
+    };
   }
 
   // Save project to database
   async save() {
-    const errors = this.validate();
-    if (errors.length > 0) {
-      throw new Error(`Validation failed: ${errors.join(", ")}`);
+    const validation = this.validate();
+    if (!validation.isValid) {
+      throw new Error(`Validation failed: ${validation.errors.join(", ")}`);
     }
 
     try {
-      const collection = db.collection("projects");
+      const collection = await getProjectsCollection();
       const result = await collection.insertOne(this);
       this._id = result.insertedId;
       return this;
@@ -92,7 +112,12 @@ class Project {
   // Static methods for database operations
   static async findAll(filter = {}, options = {}) {
     try {
-      const collection = db.collection("projects");
+      const database = await getDatabase();
+      if (!database) {
+        throw new Error("Database connection not available");
+      }
+      
+      const collection = database.collection("projects");
       const projects = await collection.find(filter, options).toArray();
       return projects;
     } catch (error) {
@@ -106,7 +131,12 @@ class Project {
         throw new Error("Invalid project ID");
       }
 
-      const collection = db.collection("projects");
+      const database = await getDatabase();
+      if (!database) {
+        throw new Error("Database connection not available");
+      }
+      
+      const collection = database.collection("projects");
       const project = await collection.findOne({ _id: new ObjectId(id) });
       return project;
     } catch (error) {

@@ -14,10 +14,10 @@ const router = express.Router();
 // GET /api/projects - List projects (all authenticated users can view)
 router.get("/", authenticateToken, requirePermission("project:read"), async (req, res) => {
   try {
-    const projects = await Project.getAll();
+    const projects = await Project.findAll();
     res.json({
       success: true,
-      data: projects
+      projects: projects
     });
   } catch (error) {
     console.error("Error fetching projects:", error);
@@ -49,7 +49,7 @@ router.post("/", authenticateToken, canManageProjects, async (req, res) => {
     res.status(201).json({
       success: true,
       message: "Project created successfully",
-      data: result
+      project: result
     });
   } catch (error) {
     console.error("Error creating project:", error);
