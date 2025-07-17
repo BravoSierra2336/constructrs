@@ -1,17 +1,26 @@
 
 import { MongoClient, ServerApiVersion } from 'mongodb';
-const uri = "mongodb+srv://sdv2336jr:Tin%40Estrada2336@employees.7gquzek.mongodb.net/?retryWrites=true&w=majority&appName=employees";
+import dotenv from 'dotenv';
+dotenv.config();
+
+const uri = process.env.ATLAS_URI;
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
-const client = new MongoClient(uri, {
-  serverApi: {
-    version: ServerApiVersion.v1,
-    strict: true,
-    deprecationErrors: true,
-  }
-});
-
+let client;
 let db;
+
+try {
+  client = new MongoClient(uri, {
+    serverApi: {
+      version: ServerApiVersion.v1,
+      strict: true,
+      deprecationErrors: true,
+    }
+  });
+} catch (error) {
+  console.error("Error creating MongoDB client:", error);
+  console.log("Server will continue without database client");
+}
 
 async function connectToDatabase() {
   try {
@@ -26,7 +35,8 @@ async function connectToDatabase() {
     
   } catch (error) {
     console.error("Error connecting to MongoDB:", error);
-    process.exit(1);
+    console.log("Server will continue running without database connection");
+    // Don't exit the process, allow server to start without DB
   }
 }
 

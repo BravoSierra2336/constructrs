@@ -22,6 +22,25 @@ router.get("/", requireAdmin, async (req, res) => {
   }
 });
 
+// GET /users/email/:email - Get user by email (admin only) - Must come before /:id
+router.get("/email/:email", requireAdmin, async (req, res) => {
+  try {
+    const user = await User.findByEmail(req.params.email);
+    
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+    
+    // Remove password from response
+    const { password, ...userWithoutPassword } = user;
+    
+    res.status(200).json(userWithoutPassword);
+  } catch (error) {
+    console.error("Error fetching user by email:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // GET /users/:id - Get a single user by ID (admin or self)
 router.get("/:id", requireAdminOrSelf, async (req, res) => {
   try {
@@ -37,25 +56,6 @@ router.get("/:id", requireAdminOrSelf, async (req, res) => {
     res.status(200).json(userWithoutPassword);
   } catch (error) {
     console.error("Error fetching user:", error);
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// GET /users/email/:email - Get user by email (admin only)
-router.get("/email/:email", requireAdmin, async (req, res) => {
-  try {
-    const user = await User.findByEmail(req.params.email);
-    
-    if (!user) {
-      return res.status(404).json({ error: "User not found" });
-    }
-    
-    // Remove password from response
-    const { password, ...userWithoutPassword } = user;
-    
-    res.status(200).json(userWithoutPassword);
-  } catch (error) {
-    console.error("Error fetching user by email:", error);
     res.status(500).json({ error: error.message });
   }
 });

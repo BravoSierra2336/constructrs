@@ -10,7 +10,6 @@ import { ObjectId } from "mongodb";
 // We use it to define our routes.
 // The router will be added as a middleware and will take control of requests starting with path /record.
 const router = express.Router();
-import express from "express";
 
 // This section will create a new report.
 router.post("/", async (req, res) => {
