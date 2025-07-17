@@ -1,6 +1,10 @@
 {
   "dependencies": {
     "bcryptjs": "^3.0.2",
-    "jsonwebtoken": "^9.0.2"
+    "fs": "^0.0.1-security",
+    "jsonwebtoken": "^9.0.2",
+    "path": "^0.12.7",
+    "pdfkit": "^0.17.1",
+    "vite": "^7.0.5"
   }
 }

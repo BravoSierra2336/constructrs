@@ -25,8 +25,10 @@ passport.use(
           const updatedUser = await User.updateById(existingUser._id, {
             microsoftId: profile.id,
             microsoftAccessToken: accessToken,
-            microsoftRefreshToken: refreshToken
+            microsoftRefreshToken: refreshToken,
+            authProvider: "microsoft" // Mark as Microsoft OAuth user
           });
+          console.log(`Existing user logged in via Microsoft: ${updatedUser.email}`);
           return done(null, updatedUser);
         } else {
           // Create new user from Microsoft profile
@@ -36,12 +38,14 @@ passport.use(
             lastName: profile.name.familyName || profile.displayName.split(" ")[1] || "User",
             email: profile.emails[0].value,
             password: "microsoft-oauth-" + Math.random().toString(36).substring(7), // Random password for OAuth users
-            jobName: "Microsoft User",
+            jobName: profile.jobTitle || "Microsoft User", // Use job title from Microsoft if available
+            role: "employee", // Default role for new Microsoft users
             microsoftAccessToken: accessToken,
             microsoftRefreshToken: refreshToken,
             authProvider: "microsoft"
           });
           
+          console.log(`New Microsoft user created: ${newUser.email} with role: ${newUser.role}`);
           return done(null, newUser);
         }
       } catch (error) {

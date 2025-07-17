@@ -1,5 +1,5 @@
 import { ObjectId } from "mongodb";
-import db from "../db/connection.js";
+import db, { getDatabase } from "../db/connection.js";
 import bcrypt from "bcryptjs";
 
 // User model class
@@ -11,6 +11,8 @@ class User {
     password, 
     jobName, 
     isAdmin = false,
+    role = "employee", // Default role
+    permissions = [],
     microsoftId = null,
     microsoftAccessToken = null,
     microsoftRefreshToken = null,
@@ -24,6 +26,8 @@ class User {
     this.password = password;
     this.jobName = jobName;
     this.isAdmin = isAdmin;
+    this.role = role; // "admin", "project_manager", "supervisor", "inspector", "employee"
+    this.permissions = permissions; // Array of specific permissions
     this.microsoftId = microsoftId;
     this.microsoftAccessToken = microsoftAccessToken;
     this.microsoftRefreshToken = microsoftRefreshToken;
@@ -54,6 +58,12 @@ class User {
     
     if (!this.jobName || this.jobName.trim().length < 2) {
       errors.push("Job name must be at least 2 characters long");
+    }
+
+    // Validate role
+    const validRoles = ["admin", "project_manager", "supervisor", "inspector", "employee"];
+    if (!validRoles.includes(this.role)) {
+      errors.push("Invalid role specified");
     }
     
     return {
@@ -108,6 +118,8 @@ class User {
       password: this.password,
       jobName: this.jobName,
       isAdmin: this.isAdmin,
+      role: this.role,
+      permissions: this.permissions,
       microsoftId: this.microsoftId,
       microsoftAccessToken: this.microsoftAccessToken,
       microsoftRefreshToken: this.microsoftRefreshToken,
@@ -139,7 +151,11 @@ class User {
 
   static async findByEmail(email) {
     try {
-      const collection = await db.collection("users");
+      const database = await getDatabase();
+      if (!database) {
+        throw new Error("Database connection not available");
+      }
+      const collection = database.collection("users");
       const query = { email: email.toLowerCase() };
       return await collection.findOne(query);
     } catch (error) {
@@ -175,7 +191,7 @@ class User {
       // Hash password before saving
       await user.hashPassword();
 
-      const collection = await db.collection("users");
+      const collection = await User.getUsersCollection();
       const result = await collection.insertOne(user.toDocument());
       
       // Return user without password
@@ -191,7 +207,7 @@ class User {
 
   static async updateById(id, updateData) {
     try {
-      const collection = await db.collection("users");
+      const collection = await User.getUsersCollection();
       const query = { _id: new ObjectId(id) };
       
       // Remove _id from update data if present
@@ -225,6 +241,66 @@ class User {
     } catch (error) {
       throw new Error(`Error deleting user: ${error.message}`);
     }
+  }
+
+  // Role management methods
+  static async updateUserRole(userId, newRole, permissions = []) {
+    try {
+      const validRoles = ["admin", "project_manager", "supervisor", "inspector", "employee"];
+      if (!validRoles.includes(newRole)) {
+        throw new Error("Invalid role specified");
+      }
+
+      const updateData = {
+        role: newRole,
+        permissions: permissions,
+        updatedAt: new Date()
+      };
+
+      const result = await db.collection("users").updateOne(
+        { _id: new ObjectId(userId) },
+        { $set: updateData }
+      );
+
+      return result;
+    } catch (error) {
+      console.error("Error updating user role:", error);
+      throw error;
+    }
+  }
+
+  // Check if user can perform action on project
+  canPerformAction(action, projectData = null) {
+    const rolePermissions = {
+      admin: ["create", "read", "update", "delete", "assign"],
+      project_manager: ["create", "read", "update", "assign"],
+      supervisor: ["read", "update", "assign"],
+      inspector: ["read"],
+      employee: ["read"]
+    };
+
+    const userPermissions = rolePermissions[this.role] || [];
+    
+    // Check role-based permissions
+    if (userPermissions.includes(action)) {
+      return true;
+    }
+
+    // Check user-specific permissions
+    if (this.permissions && this.permissions.includes(`project:${action}`)) {
+      return true;
+    }
+
+    return false;
+  }
+
+  // Helper method to get database collection
+  static async getUsersCollection() {
+    const database = await getDatabase();
+    if (!database) {
+      throw new Error("Database connection not available");
+    }
+    return database.collection("users");
   }
 }
 

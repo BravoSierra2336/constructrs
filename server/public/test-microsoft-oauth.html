@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Microsoft OAuth Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        .btn {
+            display: inline-block;
+            padding: 12px 24px;
+            margin: 10px;
+            text-decoration: none;
+            border-radius: 5px;
+            font-weight: bold;
+            text-align: center;
+            transition: background-color 0.3s;
+        }
+        .btn-microsoft {
+            background-color: #0078d4;
+            color: white;
+        }
+        .btn-microsoft:hover {
+            background-color: #106ebe;
+        }
+        .btn-test {
+            background-color: #28a745;
+            color: white;
+        }
+        .btn-test:hover {
+            background-color: #218838;
+        }
+        .status {
+            margin: 20px 0;
+            padding: 15px;
+            border-radius: 5px;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        .test-section {
+            margin: 30px 0;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        code {
+            background-color: #f8f9fa;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔐 Microsoft OAuth Test Page</h1>
+        
+        <div class="status info">
+            <strong>Server Status:</strong> Running on <code>http://localhost:5050</code>
+        </div>
+
+        <div class="test-section">
+            <h2>📝 Authentication Tests</h2>
+            
+            <h3>1. Microsoft OAuth Login</h3>
+            <p>Click the button below to test Microsoft OAuth authentication:</p>
+            <a href="/auth/microsoft" class="btn btn-microsoft">🚀 Login with Microsoft</a>
+            
+            <h3>2. Check Auth Status</h3>
+            <p>Test if authentication endpoints are accessible:</p>
+            <button onclick="checkAuthStatus()" class="btn btn-test">🔍 Check Auth Status</button>
+            
+            <h3>3. Test Protected Route</h3>
+            <p>Test a protected route that requires authentication:</p>
+            <button onclick="testProtectedRoute()" class="btn btn-test">🛡️ Test Protected Route</button>
+        </div>
+
+        <div class="test-section">
+            <h2>🔗 Manual Test URLs</h2>
+            <ul>
+                <li><a href="/auth/microsoft" target="_blank">Microsoft OAuth Login</a></li>
+                <li><a href="/auth/profile" target="_blank">User Profile (requires login)</a></li>
+                <li><a href="/auth/logout" target="_blank">Logout</a></li>
+                <li><a href="/api/projects" target="_blank">Projects API (requires auth)</a></li>
+            </ul>
+        </div>
+
+        <div id="testResults"></div>
+
+        <div class="test-section">
+            <h2>📋 Expected Flow</h2>
+            <ol>
+                <li>Click "Login with Microsoft" → Redirects to Microsoft login</li>
+                <li>Enter Microsoft credentials → Microsoft redirects back</li>
+                <li>Should receive JWT token and user data</li>
+                <li>Protected routes should now be accessible</li>
+            </ol>
+        </div>
+    </div>
+
+    <script>
+        async function checkAuthStatus() {
+            const resultsDiv = document.getElementById('testResults');
+            try {
+                const response = await fetch('/auth/profile');
+                if (response.ok) {
+                    const data = await response.json();
+                    resultsDiv.innerHTML = `
+                        <div class="status success">
+                            <strong>✅ Authenticated!</strong><br>
+                            User: ${JSON.stringify(data, null, 2)}
+                        </div>
+                    `;
+                } else {
+                    resultsDiv.innerHTML = `
+                        <div class="status info">
+                            <strong>ℹ️ Not authenticated</strong><br>
+                            Status: ${response.status} - Please login first
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultsDiv.innerHTML = `
+                    <div class="status error">
+                        <strong>❌ Error:</strong> ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        async function testProtectedRoute() {
+            const resultsDiv = document.getElementById('testResults');
+            try {
+                const response = await fetch('/api/projects');
+                if (response.ok) {
+                    const data = await response.json();
+                    resultsDiv.innerHTML = `
+                        <div class="status success">
+                            <strong>✅ Protected route accessible!</strong><br>
+                            Projects: ${JSON.stringify(data, null, 2)}
+                        </div>
+                    `;
+                } else {
+                    resultsDiv.innerHTML = `
+                        <div class="status info">
+                            <strong>🔒 Protected route blocked</strong><br>
+                            Status: ${response.status} - Authentication required
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultsDiv.innerHTML = `
+                    <div class="status error">
+                        <strong>❌ Error:</strong> ${error.message}
+                    </div>
+                `;
+            }
+        }
+    </script>
+</body>
+</html>

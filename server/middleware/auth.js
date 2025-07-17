@@ -117,3 +117,144 @@ export const optionalAuth = (req, res, next) => {
   }
   next();
 };
+
+// Define role hierarchy and permissions
+const ROLE_PERMISSIONS = {
+  admin: ["*"], // All permissions
+  project_manager: [
+    "project:create",
+    "project:read",
+    "project:update", 
+    "project:delete",
+    "project:assign",
+    "user:read",
+    "report:read",
+    "report:create"
+  ],
+  supervisor: [
+    "project:read",
+    "project:update",
+    "project:assign",
+    "user:read",
+    "report:read",
+    "report:create"
+  ],
+  inspector: [
+    "project:read",
+    "report:read",
+    "report:create",
+    "report:update"
+  ],
+  employee: [
+    "project:read",
+    "report:read"
+  ]
+};
+
+// Check if user has specific permission
+export const hasPermission = (userRole, userPermissions, requiredPermission) => {
+  // Admin has all permissions
+  if (userRole === "admin") {
+    return true;
+  }
+  
+  // Check role-based permissions
+  const rolePerms = ROLE_PERMISSIONS[userRole] || [];
+  if (rolePerms.includes(requiredPermission)) {
+    return true;
+  }
+  
+  // Check user-specific permissions
+  if (userPermissions && userPermissions.includes(requiredPermission)) {
+    return true;
+  }
+  
+  return false;
+};
+
+// Middleware to check specific permissions
+export const requirePermission = (permission) => {
+  return async (req, res, next) => {
+    try {
+      // Ensure user is authenticated first
+      if (!req.user) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
+
+      // Get full user data to check role and permissions
+      const user = await User.findById(req.user.id);
+      if (!user) {
+        return res.status(401).json({ error: "User not found" });
+      }
+
+      // Check if user has the required permission
+      if (!hasPermission(user.role, user.permissions, permission)) {
+        return res.status(403).json({ 
+          error: "Insufficient permissions",
+          required: permission,
+          userRole: user.role
+        });
+      }
+
+      // Add user role and permissions to request for further use
+      req.user.role = user.role;
+      req.user.permissions = user.permissions;
+      
+      next();
+    } catch (error) {
+      console.error("Permission check error:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  };
+};
+
+// Middleware to check if user can manage projects
+export const canManageProjects = requirePermission("project:create");
+
+// Middleware to check if user can assign projects  
+export const canAssignProjects = requirePermission("project:assign");
+
+// Middleware to check if user can update projects
+export const canUpdateProjects = requirePermission("project:update");
+
+// Middleware to check if user can delete projects
+export const canDeleteProjects = requirePermission("project:delete");
+
+// Middleware to require specific roles
+export const requireRole = (allowedRoles) => {
+  return async (req, res, next) => {
+    try {
+      // Ensure user is authenticated first
+      if (!req.user) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
+
+      // Get full user data to check role
+      const user = await User.findById(req.user.id);
+      if (!user) {
+        return res.status(401).json({ error: "User not found" });
+      }
+
+      // Convert single role to array for easier checking
+      const rolesArray = Array.isArray(allowedRoles) ? allowedRoles : [allowedRoles];
+      
+      // Check if user's role is in the allowed roles
+      if (!rolesArray.includes(user.role)) {
+        return res.status(403).json({ 
+          error: "Insufficient role permissions",
+          required: rolesArray,
+          userRole: user.role
+        });
+      }
+
+      // Add user role to request for further use
+      req.user.role = user.role;
+      req.user.permissions = user.permissions;
+      
+      next();
+    } catch (error) {
+      console.error("Role check error:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  };
+};
