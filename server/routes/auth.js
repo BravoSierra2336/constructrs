@@ -192,7 +192,7 @@ router.get("/microsoft", passport.authenticate("microsoft", {
 
 // GET /auth/microsoft/callback - Handle Microsoft OAuth callback
 router.get("/microsoft/callback", 
-  passport.authenticate("microsoft", { failureRedirect: "/auth/login?error=oauth_failed" }),
+  passport.authenticate("microsoft", { failureRedirect: "/login?error=oauth_failed" }),
   async (req, res) => {
     try {
       // Generate JWT token for the authenticated user
@@ -201,16 +201,51 @@ router.get("/microsoft/callback",
       // Remove sensitive fields from response
       const { password, microsoftAccessToken, microsoftRefreshToken, ...userWithoutSecrets } = req.user;
       
-      // In production, you might want to redirect to your frontend with the token
-      // For now, we'll return JSON response
-      res.json({
-        message: "Microsoft OAuth login successful",
-        user: userWithoutSecrets,
-        token: token
+      // Set the JWT token as an HTTP-only cookie for security
+      res.cookie('authToken', token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 24 * 60 * 60 * 1000 // 24 hours
       });
+      
+      // Set user data in a separate cookie for frontend access (without sensitive data)
+      res.cookie('userData', JSON.stringify(userWithoutSecrets), {
+        httpOnly: false, // Allow frontend access
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 24 * 60 * 60 * 1000 // 24 hours
+      });
+      
+      // Create a temporary page that sets localStorage and redirects
+      const redirectScript = `
+        <html>
+          <head>
+            <title>Redirecting...</title>
+          </head>
+          <body>
+            <div style="text-align: center; margin-top: 50px;">
+              <h2>🔄 Completing login...</h2>
+              <p>You will be redirected to the dashboard shortly.</p>
+            </div>
+            <script>
+              // Set localStorage for React app compatibility
+              localStorage.setItem('authToken', '${token}');
+              localStorage.setItem('userData', '${JSON.stringify(userWithoutSecrets).replace(/'/g, "\\'")}');
+              
+              // Redirect to dashboard after setting localStorage
+              setTimeout(() => {
+                window.location.href = '/dashboard';
+              }, 1000);
+            </script>
+          </body>
+        </html>
+      `;
+      
+      res.send(redirectScript);
     } catch (error) {
       console.error("Error in Microsoft OAuth callback:", error);
-      res.status(500).json({ error: "OAuth authentication failed" });
+      res.redirect('/login?error=oauth_processing_failed');
     }
   }
 );

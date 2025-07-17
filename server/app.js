@@ -44,7 +44,7 @@ app.use("/reports", reports);
 app.use("/users", users);
 app.use("/auth", auth);
 app.use("/ai", ai);
-app.use("/api/projects", projects);
+app.use("/projects", projects);
 app.use("/admin", admin);
 
 // Serve React app for non-API routes (must be after API routes)

@@ -14,9 +14,7 @@ const Projects = () => {
     name: '',
     description: '',
     location: '',
-    startDate: '',
-    endDate: '',
-    status: 'planning'
+    startDate: ''
   });
 
   useEffect(() => {
@@ -64,9 +62,7 @@ const Projects = () => {
           name: '',
           description: '',
           location: '',
-          startDate: '',
-          endDate: '',
-          status: 'planning'
+          startDate: ''
         });
       }
     } catch (error) {
@@ -280,43 +276,15 @@ const Projects = () => {
                 />
               </div>
               
-              <div className="form-row">
-                <div className="form-group">
-                  <label className="form-label">Start Date</label>
-                  <input
-                    type="date"
-                    name="startDate"
-                    className="form-input"
-                    value={newProject.startDate}
-                    onChange={handleInputChange}
-                  />
-                </div>
-                
-                <div className="form-group">
-                  <label className="form-label">End Date</label>
-                  <input
-                    type="date"
-                    name="endDate"
-                    className="form-input"
-                    value={newProject.endDate}
-                    onChange={handleInputChange}
-                  />
-                </div>
-              </div>
-              
               <div className="form-group">
-                <label className="form-label">Status</label>
-                <select
-                  name="status"
-                  className="form-select"
-                  value={newProject.status}
+                <label className="form-label">Start Date</label>
+                <input
+                  type="date"
+                  name="startDate"
+                  className="form-input"
+                  value={newProject.startDate}
                   onChange={handleInputChange}
-                >
-                  <option value="planning">Planning</option>
-                  <option value="active">Active</option>
-                  <option value="on_hold">On Hold</option>
-                  <option value="completed">Completed</option>
-                </select>
+                />
               </div>
               
               <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '20px' }}>

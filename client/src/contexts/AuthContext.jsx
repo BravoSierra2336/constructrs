@@ -18,20 +18,48 @@ export const AuthProvider = ({ children }) => {
 
   // Check if user is already logged in on app start
   useEffect(() => {
-    const token = localStorage.getItem('authToken');
-    const userData = localStorage.getItem('userData');
+    // Helper function to get cookie value
+    const getCookie = (name) => {
+      const value = `; ${document.cookie}`;
+      const parts = value.split(`; ${name}=`);
+      if (parts.length === 2) return parts.pop().split(';').shift();
+    };
+
+    // First check localStorage (for regular login)
+    let token = localStorage.getItem('authToken');
+    let userData = localStorage.getItem('userData');
     
-    if (token && userData) {
+    // If not in localStorage, check cookies (for OAuth login)
+    if (!token || !userData) {
+      const cookieUserData = getCookie('userData');
+      if (cookieUserData) {
+        try {
+          userData = decodeURIComponent(cookieUserData);
+          // For cookie-based auth, we'll make an API call to verify the session
+          // since the JWT token is httpOnly and not accessible to JavaScript
+        } catch (error) {
+          console.error('Error parsing cookie user data:', error);
+        }
+      }
+    }
+    
+    if (userData) {
       try {
         const parsedUser = JSON.parse(userData);
         setUser(parsedUser);
         setIsAuthenticated(true);
-        // Set default authorization header
-        axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+        
+        // Set default authorization header only if we have a token from localStorage
+        if (token) {
+          axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+        }
       } catch (error) {
         console.error('Error parsing stored user data:', error);
         localStorage.removeItem('authToken');
         localStorage.removeItem('userData');
+        // Clear cookies if they exist
+        document.cookie = 'authToken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+        document.cookie = 'userData=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
       }
     }
     setLoading(false);
@@ -68,9 +96,18 @@ export const AuthProvider = ({ children }) => {
   };
 
   const logout = () => {
+    // Clear localStorage
     localStorage.removeItem('authToken');
     localStorage.removeItem('userData');
+    
+    // Clear cookies
+    document.cookie = 'authToken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+    document.cookie = 'userData=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+    
+    // Clear axios default headers
     delete axios.defaults.headers.common['Authorization'];
+    
+    // Reset state
     setUser(null);
     setIsAuthenticated(false);
   };

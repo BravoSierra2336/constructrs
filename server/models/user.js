@@ -1,5 +1,5 @@
 import { ObjectId } from "mongodb";
-import db, { getDatabase } from "../db/connection.js";
+import { getDatabase } from "../db/connection.js";
 import bcrypt from "bcryptjs";
 
 // User model class
@@ -132,7 +132,11 @@ class User {
   // Static methods for database operations
   static async findAll() {
     try {
-      const collection = await db.collection("users");
+      const database = await getDatabase();
+      if (!database) {
+        throw new Error("Database connection not available");
+      }
+      const collection = database.collection("users");
       return await collection.find({}).toArray();
     } catch (error) {
       throw new Error(`Error fetching users: ${error.message}`);
@@ -141,7 +145,11 @@ class User {
 
   static async findById(id) {
     try {
-      const collection = await db.collection("users");
+      const database = await getDatabase();
+      if (!database) {
+        throw new Error("Database connection not available");
+      }
+      const collection = database.collection("users");
       const query = { _id: new ObjectId(id) };
       return await collection.findOne(query);
     } catch (error) {
@@ -165,7 +173,11 @@ class User {
 
   static async findByMicrosoftId(microsoftId) {
     try {
-      const collection = await db.collection("users");
+      const database = await getDatabase();
+      if (!database) {
+        throw new Error("Database connection not available");
+      }
+      const collection = database.collection("users");
       const query = { microsoftId: microsoftId };
       return await collection.findOne(query);
     } catch (error) {
@@ -229,7 +241,11 @@ class User {
 
   static async deleteById(id) {
     try {
-      const collection = await db.collection("users");
+      const database = await getDatabase();
+      if (!database) {
+        throw new Error("Database connection not available");
+      }
+      const collection = database.collection("users");
       const query = { _id: new ObjectId(id) };
       const result = await collection.deleteOne(query);
       
@@ -257,7 +273,12 @@ class User {
         updatedAt: new Date()
       };
 
-      const result = await db.collection("users").updateOne(
+      const database = await getDatabase();
+      if (!database) {
+        throw new Error("Database connection not available");
+      }
+      
+      const result = await database.collection("users").updateOne(
         { _id: new ObjectId(userId) },
         { $set: updateData }
       );
