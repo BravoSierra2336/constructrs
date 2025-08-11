@@ -2,7 +2,7 @@ services:
   - type: web
     name: constructrs-server
     env: node
-    buildCommand: npm install
+    buildCommand: npm install --verbose
     startCommand: npm start
     envVars:
       - key: NODE_ENV
