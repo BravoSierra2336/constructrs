@@ -1,0 +1,12 @@
+node_modules
+.git
+*.log
+.env*
+coverage
+.nyc_output
+test
+tests
+__tests__
+.vscode
+.DS_Store
+Thumbs.db
