@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { Container } from 'react-bootstrap';
 import Navbar from './components/Navbar.jsx';
 import Login from './components/Login.jsx';
 import Dashboard from './components/Dashboard.jsx';
@@ -10,6 +9,9 @@ import AdminDashboard from './components/AdminDashboard.jsx';
 import CreateReport from './components/CreateReport.jsx';
 import { AuthProvider, useAuth } from './contexts/AuthContext.jsx';
 import './App.css';
+// Import page layout system
+import './styles/PageLayout.css';
+// Import modern inputs last to ensure highest specificity
 import './styles/ModernInputs.css';
 
 // Protected Route component
@@ -49,58 +51,56 @@ function AppContent() {
   return (
     <div className="App">
       {isAuthenticated && <Navbar />}
-      <Container fluid className="p-0">
-        <Routes>
-          <Route 
-            path="/login" 
-            element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <Login />} 
-          />
-          <Route 
-            path="/dashboard" 
-            element={
-              <ProtectedRoute>
-                <Dashboard />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/projects" 
-            element={
-              <ProtectedRoute>
-                <Projects />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/reports" 
-            element={
-              <ProtectedRoute>
-                <Reports />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/reports/create" 
-            element={
-              <ProtectedRoute>
-                <CreateReport />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/admin" 
-            element={
-              <AdminRoute>
-                <AdminDashboard />
-              </AdminRoute>
-            } 
-          />
-          <Route 
-            path="/" 
-            element={<Navigate to="/login" replace />} 
-          />
-        </Routes>
-      </Container>
+      <Routes>
+        <Route 
+          path="/login" 
+          element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <Login />} 
+        />
+        <Route 
+          path="/dashboard" 
+          element={
+            <ProtectedRoute>
+              <Dashboard />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/projects" 
+          element={
+            <ProtectedRoute>
+              <Projects />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/reports" 
+          element={
+            <ProtectedRoute>
+              <Reports />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/reports/create" 
+          element={
+            <ProtectedRoute>
+              <CreateReport />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/admin" 
+          element={
+            <AdminRoute>
+              <AdminDashboard />
+            </AdminRoute>
+          } 
+        />
+        <Route 
+          path="/" 
+          element={<Navigate to="/login" replace />} 
+        />
+      </Routes>
     </div>
   );
 }

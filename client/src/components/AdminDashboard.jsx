@@ -251,16 +251,29 @@ const AdminDashboard = () => {
   };
 
   if (loading) {
-    return <div className="loading">Loading admin dashboard...</div>;
+    return (
+      <div className="page-layout admin-layout">
+        <div className="modern-admin-dashboard">
+          <div className="dashboard-background"></div>
+          <div className="dashboard-container">
+            <div className="page-loading fade-in-up">
+              <div className="modern-spinner"></div>
+              <p>Loading admin dashboard...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (
-    <div className="modern-admin-dashboard">
-      {/* Background */}
-      <div className="dashboard-background"></div>
-      
-      {/* Content Container */}
-      <div className="dashboard-container">
+    <div className="page-layout admin-layout">
+      <div className="modern-admin-dashboard">
+        {/* Background */}
+        <div className="dashboard-background"></div>
+        
+        {/* Content Container */}
+        <div className="dashboard-container">
         {/* Alert Messages */}
         {error && (
           <div className="alert alert-error">
@@ -514,6 +527,7 @@ const AdminDashboard = () => {
             </div>
           </div>
         )}
+        </div>
       </div>
     </div>
   );

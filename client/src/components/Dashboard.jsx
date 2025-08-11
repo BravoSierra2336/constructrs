@@ -72,52 +72,56 @@ const Dashboard = () => {
 
   if (loading) {
     return (
-      <Container fluid className="d-flex justify-content-center align-items-center" style={{ minHeight: '60vh' }}>
-        <div className="text-center fade-in">
-          <div className="modern-spinner mx-auto mb-3"></div>
-          <p className="text-muted">Loading your dashboard...</p>
+      <div className="page-layout dashboard-layout">
+        <div className="page-content">
+          <div className="page-loading fade-in-up">
+            <div className="modern-spinner"></div>
+            <p className="text-muted">Loading your dashboard...</p>
+          </div>
         </div>
-      </Container>
+      </div>
     );
   }
 
   return (
-    <Container fluid className="py-4 fade-in">
-      {error && (
-        <Alert variant="danger" className="modern-card mb-4">
-          <div className="d-flex justify-content-between align-items-center">
-            <div>
-              <i className="fas fa-exclamation-triangle me-2"></i>
-              {error}
+    <div className="page-layout dashboard-layout">
+      <div className="page-background"></div>
+      <div className="page-content fade-in-up">
+        {error && (
+          <Alert variant="danger" className="page-card">
+            <div className="d-flex justify-content-between align-items-center">
+              <div>
+                <i className="fas fa-exclamation-triangle me-2"></i>
+                {error}
+              </div>
+              <Button 
+                variant="outline-danger" 
+                size="sm" 
+                onClick={fetchDashboardData}
+                disabled={loading}
+              >
+                {loading ? (
+                  <><i className="fas fa-spinner fa-spin me-1"></i>Retrying...</>
+                ) : (
+                  <><i className="fas fa-redo me-1"></i>Retry</>
+                )}
+              </Button>
             </div>
-            <Button 
-              variant="outline-danger" 
-              size="sm" 
-              onClick={fetchDashboardData}
-              disabled={loading}
-            >
-              {loading ? (
-                <><i className="fas fa-spinner fa-spin me-1"></i>Retrying...</>
-              ) : (
-                <><i className="fas fa-redo me-1"></i>Retry</>
-              )}
-            </Button>
+          </Alert>
+        )}
+        
+        {/* Modern Hero Section */}
+        <div className="modern-hero slide-up">
+          <div className="modern-hero-content">
+            <h1 className="mb-3">
+              {getGreeting()}, {user?.firstName}! 👋
+            </h1>
+            <p className="lead mb-0">
+              Welcome to your Construction Management Dashboard. 
+              Logged in as <span className="fw-bold">{getRoleDisplayName(user?.role)}</span>
+            </p>
           </div>
-        </Alert>
-      )}
-      
-      {/* Modern Hero Section */}
-      <div className="modern-hero slide-up">
-        <div className="modern-hero-content">
-          <h1 className="mb-3">
-            {getGreeting()}, {user?.firstName}! 👋
-          </h1>
-          <p className="lead mb-0">
-            Welcome to your Construction Management Dashboard. 
-            Logged in as <span className="fw-bold">{getRoleDisplayName(user?.role)}</span>
-          </p>
         </div>
-      </div>
 
       {/* Modern Stats Grid */}
       <div className="modern-stats-grid">
@@ -281,7 +285,8 @@ const Dashboard = () => {
           </div>
         </div>
       )}
-    </Container>
+      </div>
+    </div>
   );
 };
 

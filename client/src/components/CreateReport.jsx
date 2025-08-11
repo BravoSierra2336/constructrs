@@ -96,20 +96,22 @@ const CreateReport = () => {
   ];
 
   return (
-    <div className="container">
-      {/* Page Header */}
-      <div className="page-header">
-        <h1 className="page-title">📝 Create Inspection Report</h1>
-        <p className="page-description">
-          Submit a new construction inspection report with automatic PDF generation
-        </p>
-      </div>
+    <div className="page-layout">
+      <div className="page-background"></div>
+      <div className="page-content fade-in-up">
+        {/* Page Header */}
+        <div className="page-header-section">
+          <h1 className="page-title">📝 Create Inspection Report</h1>
+          <p className="page-description">
+            Submit a new construction inspection report with automatic PDF generation
+          </p>
+        </div>
 
-      {error && <div className="error">{error}</div>}
-      {success && <div className="success">{success}</div>}
+        {error && <div className="page-error">{error}</div>}
+        {success && <div className="page-card" style={{background: 'linear-gradient(135deg, #00b894, #00cec9)', color: 'white'}}>{success}</div>}
 
-      <div className="card">
-        <form onSubmit={handleSubmit}>
+        <div className="page-card">
+          <form onSubmit={handleSubmit}>
           {/* Basic Information */}
           <div className="modern-form-group">
             <label className="modern-label required">Report Title</label>
@@ -245,6 +247,7 @@ const CreateReport = () => {
           <li>Make sure to provide detailed findings for better record keeping</li>
           <li>You can edit draft reports before final submission</li>
         </ul>
+        </div>
       </div>
     </div>
   );

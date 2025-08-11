@@ -175,39 +175,52 @@ const Reports = () => {
   };
 
   if (loading) {
-    return <div className="loading">Loading reports...</div>;
+    return (
+      <div className="page-layout">
+        <div className="page-content">
+          <div className="page-loading fade-in-up">
+            <div className="modern-spinner"></div>
+            <p>Loading reports...</p>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (
-    <div className="container">
-      {error && <div className="error">{error}</div>}
-      
-      {/* Page Header */}
-      <div className="page-header">
-        <h1 className="page-title">📋 Inspection Reports</h1>
-        <p className="page-description">
-          View and manage construction inspection reports
-        </p>
-      </div>
+    <div className="page-layout">
+      <div className="page-background"></div>
+      <div className="page-content fade-in-up">
+        {error && <div className="page-error">{error}</div>}
+        
+        {/* Page Header */}
+        <div className="page-header-section">
+          <h1 className="page-title">📋 Inspection Reports</h1>
+          <p className="page-description">
+            View and manage construction inspection reports
+          </p>
+        </div>
 
-      {/* Search and Filter */}
-      <div className="search-and-filter">
-        <div className="filter-row">
-          <input
-            type="text"
-            placeholder="Search reports by title, author, or project..."
-            className="search-input"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-          <select
-            className="form-select"
-            value={projectFilter}
-            onChange={(e) => setProjectFilter(e.target.value)}
-            style={{ minWidth: '200px' }}
-          >
-            <option value="">All Projects</option>
-            {projects.map(project => (
+        {/* Search and Filter */}
+        <div className="page-section">
+          <div className="page-filters">
+            <div className="page-search">
+              <input
+                type="text"
+                placeholder="Search reports by title, author, or project..."
+                className="modern-search"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+            <select
+              className="modern-select"
+              value={projectFilter}
+              onChange={(e) => setProjectFilter(e.target.value)}
+              style={{ minWidth: '200px' }}
+            >
+              <option value="">All Projects</option>
+              {projects.map(project => (
               <option key={project._id} value={project.name}>
                 {project.name}
               </option>
@@ -342,6 +355,7 @@ const Reports = () => {
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 };

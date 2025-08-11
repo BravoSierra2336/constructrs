@@ -104,64 +104,80 @@ const Projects = () => {
   };
 
   if (loading) {
-    return <div className="loading">Loading projects...</div>;
+    return (
+      <div className="page-layout">
+        <div className="page-content">
+          <div className="page-loading fade-in-up">
+            <div className="modern-spinner"></div>
+            <p>Loading projects...</p>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (
-    <div className="container">
-      {error && <div className="error">{error}</div>}
-      
-      {/* Page Header */}
-      <div className="page-header">
-        <h1 className="page-title">🏢 Construction Projects</h1>
-        <p className="page-description">
-          Manage and track construction projects across your organization
-        </p>
-      </div>
-
-      {/* Search and Actions */}
-      <div className="search-and-filter">
-        <div className="filter-row">
-          <input
-            type="text"
-            placeholder="Search projects by name, description, or location..."
-            className="search-input"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-          {canManageProjects() && (
-            <button
-              onClick={() => setShowCreateModal(true)}
-              className="btn btn-primary"
-            >
-              ➕ Create Project
-            </button>
-          )}
-        </div>
-      </div>
-
-      {/* Projects Grid */}
-      {filteredProjects.length === 0 ? (
-        <div className="card" style={{ textAlign: 'center', padding: '50px' }}>
-          <h3 style={{ color: '#666', marginBottom: '10px' }}>No Projects Found</h3>
-          <p style={{ color: '#999' }}>
-            {searchTerm ? 'Try adjusting your search terms.' : 'No projects have been created yet.'}
+    <div className="page-layout">
+      <div className="page-background"></div>
+      <div className="page-content fade-in-up">
+        {error && <div className="page-error">{error}</div>}
+        
+        {/* Page Header */}
+        <div className="page-header-section">
+          <h1 className="page-title">🏢 Construction Projects</h1>
+          <p className="page-description">
+            Manage and track construction projects across your organization
           </p>
-          {canManageProjects() && !searchTerm && (
-            <button
-              onClick={() => setShowCreateModal(true)}
-              className="btn btn-primary"
-              style={{ marginTop: '20px' }}
-            >
-              Create Your First Project
-            </button>
-          )}
         </div>
-      ) : (
-        <div className="grid grid-2">
-          {filteredProjects.map(project => (
-            <div key={project._id} className="card">
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '15px' }}>
+
+        {/* Search and Actions */}
+        <div className="page-section">
+          <div className="page-filters">
+            <div className="page-search">
+              <input
+                type="text"
+                placeholder="Search projects by name, description, or location..."
+                className="modern-search"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+            {canManageProjects() && (
+              <button
+                onClick={() => setShowCreateModal(true)}
+                className="modern-btn modern-btn-primary"
+              >
+                <i className="fas fa-plus me-2"></i>
+                Create Project
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Projects Grid */}
+        <div className="page-section">
+          {filteredProjects.length === 0 ? (
+            <div className="page-empty">
+              <div className="page-empty-icon">🏢</div>
+              <h3>No Projects Found</h3>
+              <p>
+                {searchTerm ? 'Try adjusting your search terms.' : 'No projects have been created yet.'}
+              </p>
+              {canManageProjects() && !searchTerm && (
+                <button
+                  onClick={() => setShowCreateModal(true)}
+                  className="modern-btn modern-btn-primary"
+                >
+                  <i className="fas fa-plus me-2"></i>
+                  Create Your First Project
+                </button>
+              )}
+            </div>
+          ) : (
+            <div className="page-grid page-grid-2">
+              {filteredProjects.map(project => (
+                <div key={project._id} className="page-card scale-in">
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '15px' }}>
                 <h3 style={{ color: '#333', margin: 0 }}>{project.name}</h3>
                 {getStatusBadge(project.status)}
               </div>
@@ -212,12 +228,14 @@ const Projects = () => {
               )}
               
               <div style={{ display: 'flex', gap: '10px', marginTop: 'auto' }}>
-                <button className="btn btn-primary" style={{ flex: 1 }}>
-                  📋 View Reports
+                <button className="modern-btn modern-btn-primary" style={{ flex: 1 }}>
+                  <i className="fas fa-clipboard-list me-2"></i>
+                  View Reports
                 </button>
                 {canManageProjects() && (
-                  <button className="btn btn-secondary">
-                    ✏️ Edit
+                  <button className="modern-btn modern-btn-secondary">
+                    <i className="fas fa-edit me-2"></i>
+                    Edit
                   </button>
                 )}
               </div>
@@ -225,9 +243,10 @@ const Projects = () => {
           ))}
         </div>
       )}
+        </div>
 
-      {/* Create Project Modal */}
-      {showCreateModal && (
+        {/* Create Project Modal */}
+        {showCreateModal && (
         <div className="modal-overlay">
           <div className="modal">
             <div className="modal-header">
@@ -294,11 +313,13 @@ const Projects = () => {
                 <button
                   type="button"
                   onClick={() => setShowCreateModal(false)}
-                  className="btn btn-secondary"
+                  className="modern-btn modern-btn-secondary"
                 >
+                  <i className="fas fa-times me-2"></i>
                   Cancel
                 </button>
-                <button type="submit" className="btn btn-primary">
+                <button type="submit" className="modern-btn modern-btn-primary">
+                  <i className="fas fa-plus me-2"></i>
                   Create Project
                 </button>
               </div>
@@ -306,6 +327,7 @@ const Projects = () => {
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 };
