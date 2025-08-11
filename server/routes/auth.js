@@ -2,6 +2,7 @@ import express from "express";
 import User from "../models/user.js";
 import { generateToken, authenticateToken } from "../middleware/auth.js";
 import passport from "../config/passport.js";
+import { getDatabase } from "../db/connection.js";
 
 const router = express.Router();
 
@@ -312,6 +313,100 @@ router.post("/microsoft/token", async (req, res) => {
     console.error("Error in Microsoft token exchange:", error);
     res.status(500).json({ error: "Token exchange failed" });
   }
+});
+
+// GET /auth/me - Get current user info (for testing authentication)
+router.get("/me", authenticateToken, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+    
+    // Remove sensitive fields
+    const { password, microsoftAccessToken: _, microsoftRefreshToken, ...userWithoutSecrets } = user;
+    
+    res.json({
+      success: true,
+      user: userWithoutSecrets
+    });
+  } catch (error) {
+    console.error("Error fetching user profile:", error);
+    res.status(500).json({ error: "Failed to fetch user profile" });
+  }
+});
+
+router.get("/check-role", authenticateToken, async (req, res) => {
+    try {
+        // Get fresh user data to ensure we have the latest role
+        const user = await User.findById(req.user.id);
+        
+        if (!user) {
+            return res.status(404).json({ error: "User not found" });
+        }
+        
+        res.json({
+            success: true,
+            user: {
+                id: user._id,
+                email: user.email,
+                firstName: user.firstName,
+                lastName: user.lastName,
+                role: user.role,
+                isAdmin: user.isAdmin
+            },
+            tokenUser: req.user
+        });
+    } catch (error) {
+        console.error("Error checking role:", error);
+        res.status(500).json({ error: "Internal server error" });
+    }
+});
+
+// Temporary endpoint to set up admin user - REMOVE IN PRODUCTION
+router.post("/setup-admin", async (req, res) => {
+    try {
+        const { email, makeAdmin } = req.body;
+        
+        if (!email) {
+            return res.status(400).json({ error: "Email is required" });
+        }
+        
+        const user = await User.findByEmail(email);
+        
+        if (!user) {
+            return res.status(404).json({ error: "User not found with email: " + email });
+        }
+        
+        // Update user role using the User model's update method
+        const updateData = {
+            role: makeAdmin ? 'admin' : 'user',
+            isAdmin: makeAdmin || false
+        };
+        
+        // Use the database directly since User model might not have findByIdAndUpdate
+        const database = await getDatabase();
+        const usersCollection = database.collection("users");
+        
+        await usersCollection.updateOne(
+            { _id: user._id },
+            { $set: updateData }
+        );
+        
+        res.json({
+            success: true,
+            message: `User ${email} ${makeAdmin ? 'promoted to admin' : 'set to regular user'}`,
+            user: {
+                email: user.email,
+                role: updateData.role,
+                isAdmin: updateData.isAdmin
+            }
+        });
+        
+    } catch (error) {
+        console.error("Error setting up admin:", error);
+        res.status(500).json({ error: "Internal server error: " + error.message });
+    }
 });
 
 export default router;

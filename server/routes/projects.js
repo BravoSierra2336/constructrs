@@ -11,6 +11,26 @@ import {
 
 const router = express.Router();
 
+// Test endpoint - remove in production
+router.get("/test", async (req, res) => {
+  try {
+    const projects = await Project.findAll();
+    res.json({
+      success: true,
+      message: "Database connection working",
+      projectCount: projects.length,
+      projects: projects.slice(0, 2) // Return first 2 projects for testing
+    });
+  } catch (error) {
+    console.error("Database test error:", error);
+    res.status(500).json({ 
+      success: false, 
+      error: "Database connection failed",
+      details: error.message 
+    });
+  }
+});
+
 // GET /api/projects - List projects (all authenticated users can view)
 router.get("/", authenticateToken, requirePermission("project:read"), async (req, res) => {
   try {

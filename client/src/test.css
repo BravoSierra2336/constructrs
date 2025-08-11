@@ -1,0 +1,6 @@
+/* Test CSS to verify build process */
+.test-class {
+  background-color: red;
+  color: white;
+  padding: 1rem;
+}

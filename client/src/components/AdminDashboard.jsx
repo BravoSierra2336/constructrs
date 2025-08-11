@@ -3,7 +3,7 @@ import { useAuth } from '../contexts/AuthContext';
 import axios from 'axios';
 
 const AdminDashboard = () => {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const [reports, setReports] = useState([]);
   const [filteredReports, setFilteredReports] = useState([]);
   const [projects, setProjects] = useState([]);
@@ -22,9 +22,12 @@ const AdminDashboard = () => {
   const [selectedReports, setSelectedReports] = useState([]);
 
   useEffect(() => {
-    loadReports();
-    loadStats();
-  }, []);
+    // Only load data if authentication is loaded and user is authenticated
+    if (!authLoading && user) {
+      loadReports();
+      loadStats();
+    }
+  }, [authLoading, user]);
 
   useEffect(() => {
     applyFilters();

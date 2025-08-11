@@ -29,6 +29,7 @@ export const generateToken = (user) => {
     email: user.email,
     firstName: user.firstName,
     lastName: user.lastName,
+    role: user.role,
     isAdmin: user.isAdmin
   };
   

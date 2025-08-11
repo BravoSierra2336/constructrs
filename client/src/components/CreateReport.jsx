@@ -48,7 +48,28 @@ const CreateReport = () => {
     setSuccess('');
 
     try {
-      const response = await axios.post('/reports', formData);
+      // Map the form data to match server expectations
+      console.log('User object:', user);
+      console.log('Form data:', formData);
+      
+      const reportData = {
+        title: formData.title,
+        content: formData.description, // Map description to content
+        author: `${user.firstName} ${user.lastName}`, // Use authenticated user info
+        jobname: formData.title, // Use title as jobname for now
+        jobid: `RPT-${Date.now()}`, // Generate a unique job ID
+        projectId: formData.projectId,
+        inspectorId: user.id || user._id, // Try both id and _id
+        inspectionType: formData.inspectionType,
+        findings: formData.findings,
+        recommendations: formData.recommendations,
+        status: formData.status
+      };
+
+      console.log('Sending report data:', reportData);
+      
+      const response = await axios.post('/reports', reportData);
+      console.log('Server response:', response.data);
       if (response.data.success) {
         setSuccess('Report created successfully! PDF is being generated...');
         setTimeout(() => {

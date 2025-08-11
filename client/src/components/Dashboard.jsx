@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { Container, Row, Col, Card, Button, Alert, Spinner, Badge } from 'react-bootstrap';
 import { useAuth } from '../contexts/AuthContext';
 import axios from 'axios';
 
 const Dashboard = () => {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const [stats, setStats] = useState({
     totalProjects: 0,
     totalReports: 0,
@@ -14,12 +15,16 @@ const Dashboard = () => {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    fetchDashboardData();
-  }, []);
+    // Only fetch data if authentication is loaded and user is authenticated
+    if (!authLoading && user) {
+      fetchDashboardData();
+    }
+  }, [authLoading, user]);
 
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
+      setError(''); // Clear any previous errors
       
       // Fetch projects
       const projectsResponse = await axios.get('/projects');
@@ -37,7 +42,7 @@ const Dashboard = () => {
       
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
-      setError('Failed to load dashboard data');
+      setError('Failed to load dashboard data. Please check your connection and try again.');
     } finally {
       setLoading(false);
     }
@@ -66,135 +71,217 @@ const Dashboard = () => {
   };
 
   if (loading) {
-    return <div className="loading">Loading dashboard...</div>;
+    return (
+      <Container fluid className="d-flex justify-content-center align-items-center" style={{ minHeight: '60vh' }}>
+        <div className="text-center fade-in">
+          <div className="modern-spinner mx-auto mb-3"></div>
+          <p className="text-muted">Loading your dashboard...</p>
+        </div>
+      </Container>
+    );
   }
 
   return (
-    <div className="container">
-      {error && <div className="error">{error}</div>}
+    <Container fluid className="py-4 fade-in">
+      {error && (
+        <Alert variant="danger" className="modern-card mb-4">
+          <div className="d-flex justify-content-between align-items-center">
+            <div>
+              <i className="fas fa-exclamation-triangle me-2"></i>
+              {error}
+            </div>
+            <Button 
+              variant="outline-danger" 
+              size="sm" 
+              onClick={fetchDashboardData}
+              disabled={loading}
+            >
+              {loading ? (
+                <><i className="fas fa-spinner fa-spin me-1"></i>Retrying...</>
+              ) : (
+                <><i className="fas fa-redo me-1"></i>Retry</>
+              )}
+            </Button>
+          </div>
+        </Alert>
+      )}
       
-      {/* Welcome Section */}
-      <div className="hero-section">
-        <div className="container">
-          <h1 className="hero-title">
-            {getGreeting()}, {user?.firstName}!
+      {/* Modern Hero Section */}
+      <div className="modern-hero slide-up">
+        <div className="modern-hero-content">
+          <h1 className="mb-3">
+            {getGreeting()}, {user?.firstName}! 👋
           </h1>
-          <p className="hero-subtitle">
-            Welcome back to your Construction Management Dashboard. 
-            You're logged in as {getRoleDisplayName(user?.role)}.
+          <p className="lead mb-0">
+            Welcome to your Construction Management Dashboard. 
+            Logged in as <span className="fw-bold">{getRoleDisplayName(user?.role)}</span>
           </p>
         </div>
       </div>
 
-      {/* Stats Grid */}
-      <div className="stats-grid">
-        <div className="stat-card">
-          <div className="stat-number">{stats.totalProjects}</div>
-          <div className="stat-label">Active Projects</div>
+      {/* Modern Stats Grid */}
+      <div className="modern-stats-grid">
+        <div className="modern-stat-card">
+          <div className="modern-stat-number">{stats.totalProjects}</div>
+          <div className="modern-stat-label">🏗️ Active Projects</div>
         </div>
-        <div className="stat-card">
-          <div className="stat-number">{stats.totalReports}</div>
-          <div className="stat-label">Total Reports</div>
+        <div className="modern-stat-card">
+          <div className="modern-stat-number">{stats.totalReports}</div>
+          <div className="modern-stat-label">📋 Total Reports</div>
         </div>
-        <div className="stat-card">
-          <div className="stat-number">{stats.recentReports.length}</div>
-          <div className="stat-label">Recent Reports</div>
+        <div className="modern-stat-card">
+          <div className="modern-stat-number">{stats.recentReports.length}</div>
+          <div className="modern-stat-label">📄 Recent Reports</div>
         </div>
-        <div className="stat-card">
-          <div className="stat-number">{user?.role === 'admin' ? '∞' : '1'}</div>
-          <div className="stat-label">Access Level</div>
+        <div className="modern-stat-card">
+          <div className="modern-stat-number">{user?.role === 'admin' ? '∞' : '1'}</div>
+          <div className="modern-stat-label">🔐 Access Level</div>
         </div>
       </div>
 
-      {/* Quick Actions */}
-      <div className="quick-actions">
-        <div className="action-card">
-          <div className="action-icon">🏢</div>
-          <h3 className="action-title">View Projects</h3>
-          <p className="action-description">
-            Browse and manage construction projects
-          </p>
-          <Link to="/projects" className="btn btn-primary">
-            Go to Projects
-          </Link>
-        </div>
+      {/* Quick Actions Grid */}
+      <Row className="g-4 mb-4">
+        <Col md={6} lg={3}>
+          <div className="modern-card h-100">
+            <div className="modern-card-body text-center">
+              <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🏢</div>
+              <h5 className="fw-bold mb-3">Manage Projects</h5>
+              <p className="text-muted mb-4">
+                Browse, create and manage your construction projects with ease
+              </p>
+              <Button 
+                as={Link} 
+                to="/projects" 
+                className="modern-btn modern-btn-primary w-100"
+                style={{ textDecoration: 'none' }}
+              >
+                <i className="fas fa-building me-2"></i>
+                View Projects
+              </Button>
+            </div>
+          </div>
+        </Col>
 
-        <div className="action-card">
-          <div className="action-icon">📋</div>
-          <h3 className="action-title">Create Report</h3>
-          <p className="action-description">
-            Submit a new construction inspection report
-          </p>
-          <Link to="/reports/create" className="btn btn-primary">
-            Create Report
-          </Link>
-        </div>
+        <Col md={6} lg={3}>
+          <div className="modern-card h-100">
+            <div className="modern-card-body text-center">
+              <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>�</div>
+              <h5 className="fw-bold mb-3">Create Report</h5>
+              <p className="text-muted mb-4">
+                Submit detailed inspection reports and track progress
+              </p>
+              <Button 
+                as={Link} 
+                to="/reports/create" 
+                className="modern-btn modern-btn-primary w-100"
+                style={{ textDecoration: 'none' }}
+              >
+                <i className="fas fa-plus me-2"></i>
+                New Report
+              </Button>
+            </div>
+          </div>
+        </Col>
 
-        <div className="action-card">
-          <div className="action-icon">📊</div>
-          <h3 className="action-title">View Reports</h3>
-          <p className="action-description">
-            Review all submitted inspection reports
-          </p>
-          <Link to="/reports" className="btn btn-primary">
-            View Reports
-          </Link>
-        </div>
+        <Col md={6} lg={3}>
+          <div className="modern-card h-100">
+            <div className="modern-card-body text-center">
+              <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>📊</div>
+              <h5 className="fw-bold mb-3">View Reports</h5>
+              <p className="text-muted mb-4">
+                Review all submitted reports and track compliance
+              </p>
+              <Button 
+                as={Link} 
+                to="/reports" 
+                className="modern-btn modern-btn-primary w-100"
+                style={{ textDecoration: 'none' }}
+              >
+                <i className="fas fa-chart-bar me-2"></i>
+                All Reports
+              </Button>
+            </div>
+          </div>
+        </Col>
 
         {['admin', 'project_manager', 'supervisor'].includes(user?.role) && (
-          <div className="action-card">
-            <div className="action-icon">⚙️</div>
-            <h3 className="action-title">Admin Panel</h3>
-            <p className="action-description">
-              Manage users, projects, and system settings
-            </p>
-            <Link to="/admin" className="btn btn-primary">
-              Admin Dashboard
-            </Link>
-          </div>
+          <Col md={6} lg={3}>
+            <div className="modern-card h-100">
+              <div className="modern-card-body text-center">
+                <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>⚙️</div>
+                <h5 className="fw-bold mb-3">Admin Panel</h5>
+                <p className="text-muted mb-4">
+                  Manage users, settings and system configuration
+                </p>
+                <Button 
+                  as={Link} 
+                  to="/admin" 
+                  className="modern-btn modern-btn-primary w-100"
+                  style={{ textDecoration: 'none' }}
+                >
+                  <i className="fas fa-cogs me-2"></i>
+                  Admin Panel
+                </Button>
+              </div>
+            </div>
+          </Col>
         )}
-      </div>
+      </Row>
 
-      {/* Recent Reports */}
+      {/* Recent Reports Table */}
       {stats.recentReports.length > 0 && (
-        <div className="card">
-          <h3 style={{ marginBottom: '20px', color: '#333' }}>📋 Recent Reports</h3>
-          <div className="table">
-            <table style={{ width: '100%' }}>
-              <thead>
-                <tr>
-                  <th>Title</th>
-                  <th>Project</th>
-                  <th>Author</th>
-                  <th>Date</th>
-                  <th>Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {stats.recentReports.map((report, index) => (
-                  <tr key={report._id || index}>
-                    <td>{report.title || 'Untitled Report'}</td>
-                    <td>{report.projectInfo?.name || 'N/A'}</td>
-                    <td>{report.author || 'N/A'}</td>
-                    <td>{formatDate(report.createdAt)}</td>
-                    <td>
-                      <span className="status-badge status-success">
-                        Submitted
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+        <div className="modern-card">
+          <div className="modern-card-header">
+            <h4 className="mb-0 d-flex align-items-center">
+              <i className="fas fa-clock me-2 text-primary"></i>
+              Recent Reports
+            </h4>
           </div>
-          <div style={{ marginTop: '20px', textAlign: 'center' }}>
-            <Link to="/reports" className="btn btn-secondary">
-              View All Reports
-            </Link>
+          <div className="modern-card-body p-0">
+            <div className="table-responsive">
+              <table className="modern-table">
+                <thead>
+                  <tr>
+                    <th><i className="fas fa-file-alt me-2"></i>Title</th>
+                    <th><i className="fas fa-building me-2"></i>Project</th>
+                    <th><i className="fas fa-user me-2"></i>Author</th>
+                    <th><i className="fas fa-calendar me-2"></i>Date</th>
+                    <th><i className="fas fa-check-circle me-2"></i>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {stats.recentReports.map((report, index) => (
+                    <tr key={report._id || index}>
+                      <td className="fw-medium">{report.title || 'Untitled Report'}</td>
+                      <td className="text-muted">{report.projectInfo?.name || 'N/A'}</td>
+                      <td className="text-muted">{report.author || 'N/A'}</td>
+                      <td className="text-muted">{formatDate(report.createdAt)}</td>
+                      <td>
+                        <span className="modern-badge modern-badge-success">
+                          <i className="fas fa-check me-1"></i>
+                          Submitted
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <div className="p-3 text-center border-top">
+              <Button 
+                as={Link} 
+                to="/reports" 
+                className="modern-btn modern-btn-secondary"
+                style={{ textDecoration: 'none' }}
+              >
+                <i className="fas fa-arrow-right me-2"></i>
+                View All Reports
+              </Button>
+            </div>
           </div>
         </div>
       )}
-    </div>
+    </Container>
   );
 };
 

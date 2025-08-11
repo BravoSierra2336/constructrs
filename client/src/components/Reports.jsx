@@ -12,9 +12,23 @@ const Reports = () => {
   const [error, setError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [projectFilter, setProjectFilter] = useState('');
+  const [selectedReport, setSelectedReport] = useState(null);
+  const [showReportModal, setShowReportModal] = useState(false);
 
   useEffect(() => {
     fetchData();
+    
+    // Add event listener to refetch data when window gains focus
+    const handleWindowFocus = () => {
+      fetchData();
+    };
+    
+    window.addEventListener('focus', handleWindowFocus);
+    
+    // Cleanup event listener
+    return () => {
+      window.removeEventListener('focus', handleWindowFocus);
+    };
   }, []);
 
   useEffect(() => {
@@ -30,6 +44,9 @@ const Reports = () => {
         axios.get('/reports'),
         axios.get('/projects')
       ]);
+      
+      console.log('Reports response:', reportsResponse.data);
+      console.log('Projects response:', projectsResponse.data);
       
       setReports(reportsResponse.data.reports || []);
       setProjects(projectsResponse.data.projects || []);
@@ -64,11 +81,34 @@ const Reports = () => {
 
   const downloadPDF = async (reportId) => {
     try {
+      // Check if the report exists and has a PDF
+      const report = reports.find(r => r._id === reportId);
+      if (!report) {
+        setError('Report not found');
+        return;
+      }
+      
+      if (!report.pdfExists && !report.pdfPath) {
+        setError('PDF is still being generated. Please try again in a moment.');
+        return;
+      }
+      
+      // Use the correct PDF download endpoint
       const token = localStorage.getItem('authToken');
-      window.open(`/admin/reports/${reportId}/download?token=${token}`, '_blank');
+      const downloadUrl = `/reports/${reportId}/pdf`;
+      
+      // Create a temporary link to download the PDF
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      link.target = '_blank';
+      link.download = `report-${reportId}.pdf`;
+      
+      // Add authorization header by opening in new window with token
+      window.open(`${downloadUrl}?token=${token}`, '_blank');
+      
     } catch (error) {
       console.error('Error downloading PDF:', error);
-      setError('Failed to download PDF');
+      setError('Failed to download PDF. Please try again.');
     }
   };
 
@@ -130,6 +170,14 @@ const Reports = () => {
               </option>
             ))}
           </select>
+          <button
+            className="btn btn-outline-secondary"
+            onClick={fetchData}
+            disabled={loading}
+            title="Refresh reports"
+          >
+            🔄 {loading ? 'Loading...' : 'Refresh'}
+          </button>
           {canCreateReports() && (
             <Link to="/reports/create" className="btn btn-primary">
               ➕ Create Report
@@ -198,12 +246,11 @@ const Reports = () => {
                         <button
                           className="btn btn-secondary"
                           style={{ fontSize: '0.85rem', padding: '6px 12px' }}
-                          onClick={() => {
-                            // View report details (implement modal or detail page)
-                            console.log('View report:', report);
-                          }}
+                          onClick={() => downloadPDF(report._id)}
+                          disabled={!report.pdfExists}
+                          title={report.pdfExists ? 'Download report PDF' : 'PDF not available yet'}
                         >
-                          👁️ View
+                          👁️ View Report
                         </button>
                         {report.pdfExists && (
                           <button
@@ -211,7 +258,7 @@ const Reports = () => {
                             style={{ fontSize: '0.85rem', padding: '6px 12px' }}
                             onClick={() => downloadPDF(report._id)}
                           >
-                            📥 PDF
+                            📥 Download PDF
                           </button>
                         )}
                       </div>

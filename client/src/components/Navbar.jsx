@@ -1,5 +1,6 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { Navbar as BootstrapNavbar, Nav, Container, Button, NavDropdown } from 'react-bootstrap';
 import { useAuth } from '../contexts/AuthContext';
 
 const Navbar = () => {
@@ -16,62 +17,49 @@ const Navbar = () => {
   };
 
   return (
-    <nav className="navbar">
-      <div className="navbar-content">
-        <Link to="/dashboard" className="navbar-brand">
+    <BootstrapNavbar bg="dark" variant="dark" expand="lg" className="mb-0">
+      <Container fluid>
+        <BootstrapNavbar.Brand as={Link} to="/dashboard">
           🏗️ Construction Management
-        </Link>
+        </BootstrapNavbar.Brand>
         
-        <ul className="navbar-nav">
-          <li>
-            <Link to="/dashboard" className="nav-link">
+        <BootstrapNavbar.Toggle aria-controls="basic-navbar-nav" />
+        <BootstrapNavbar.Collapse id="basic-navbar-nav">
+          <Nav className="me-auto">
+            <Nav.Link as={Link} to="/dashboard">
               📊 Dashboard
-            </Link>
-          </li>
-          <li>
-            <Link to="/projects" className="nav-link">
+            </Nav.Link>
+            <Nav.Link as={Link} to="/projects">
               🏢 Projects
-            </Link>
-          </li>
-          <li>
-            <Link to="/reports" className="nav-link">
+            </Nav.Link>
+            <Nav.Link as={Link} to="/reports">
               📋 Reports
-            </Link>
-          </li>
-          {isAdmin() && (
-            <li>
-              <Link to="/admin" className="nav-link">
+            </Nav.Link>
+            {isAdmin() && (
+              <Nav.Link as={Link} to="/admin">
                 ⚙️ Admin
-              </Link>
-            </li>
-          )}
-          <li>
-            <span className="nav-link">
-              👤 {user?.firstName} {user?.lastName} ({user?.role})
-            </span>
-          </li>
-          <li>
-            <button 
-              onClick={handleLogout}
-              className="nav-link"
-              style={{ 
-                background: 'none', 
-                border: 'none', 
-                color: 'white',
-                cursor: 'pointer',
-                padding: '8px 16px',
-                borderRadius: '5px',
-                transition: 'background 0.3s ease'
-              }}
-              onMouseOver={(e) => e.target.style.background = 'rgba(255,255,255,0.1)'}
-              onMouseOut={(e) => e.target.style.background = 'none'}
+              </Nav.Link>
+            )}
+          </Nav>
+          
+          <Nav>
+            <NavDropdown 
+              title={`👤 ${user?.firstName} ${user?.lastName}`} 
+              id="user-dropdown"
+              align="end"
             >
-              🚪 Logout
-            </button>
-          </li>
-        </ul>
-      </div>
-    </nav>
+              <NavDropdown.Item disabled>
+                <small className="text-muted">Role: {user?.role}</small>
+              </NavDropdown.Item>
+              <NavDropdown.Divider />
+              <NavDropdown.Item onClick={handleLogout}>
+                🚪 Logout
+              </NavDropdown.Item>
+            </NavDropdown>
+          </Nav>
+        </BootstrapNavbar.Collapse>
+      </Container>
+    </BootstrapNavbar>
   );
 };
 
