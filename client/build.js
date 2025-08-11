@@ -14,9 +14,9 @@ try {
   console.log('Current directory:', process.cwd());
   console.log('Contents:', fs.readdirSync('.'));
   
-  // Install dependencies
-  console.log('Installing dependencies...');
-  execSync('npm ci', { stdio: 'inherit' });
+  // Install dependencies including optional ones
+  console.log('Installing dependencies with optional packages...');
+  execSync('npm install --include=optional', { stdio: 'inherit' });
   
   // Verify critical packages
   console.log('Verifying packages...');
@@ -35,6 +35,23 @@ try {
     console.error('✗ vite not found');
     throw e;
   }
+  
+  // Check for Rollup binaries
+  const rollupBinaries = [
+    '@rollup/rollup-linux-x64-gnu',
+    '@rollup/rollup-linux-x64-musl',
+    '@rollup/rollup-linux-arm64-gnu', 
+    '@rollup/rollup-linux-arm64-musl'
+  ];
+  
+  rollupBinaries.forEach(binary => {
+    try {
+      require.resolve(binary);
+      console.log(`✓ ${binary} found`);
+    } catch (e) {
+      console.log(`⚠ ${binary} not found (this might be okay depending on platform)`);
+    }
+  });
   
   // Build the project
   console.log('Building project...');
