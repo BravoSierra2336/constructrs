@@ -1,7 +1,10 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
-import 'bootstrap/dist/css/bootstrap.min.css'
+// Import CSS in the correct order
 import './index.css'
+import 'bootstrap/dist/css/bootstrap.min.css'
+import './styles/PageLayout.css'
+import './styles/ModernInputs.css'
 import './App.css'
 import App from './App.jsx'
 

@@ -8,11 +8,13 @@ import projects from "./routes/projects.js";
 import admin from "./routes/admin.js";
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { getDatabase } from './db/connection.js';
 
 const require = createRequire(import.meta.url);
 const express = require("express");
 const cors = require("cors");
 const session = require("express-session");
+const MongoStore = require("connect-mongo");
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -32,6 +34,14 @@ app.use(session({
   secret: process.env.SESSION_SECRET || "your-session-secret-change-in-production",
   resave: false,
   saveUninitialized: false,
+  store: MongoStore.create({
+    mongoUrl: process.env.ATLAS_URI,
+    dbName: 'Construction',
+    collectionName: 'sessions',
+    touchAfter: 24 * 3600, // Lazy session update (24 hours)
+    autoRemove: 'native', // Default
+    autoRemoveInterval: 10 // In minutes
+  }),
   cookie: {
     secure: process.env.NODE_ENV === "production", // Use secure cookies in production
     maxAge: 24 * 60 * 60 * 1000 // 24 hours
