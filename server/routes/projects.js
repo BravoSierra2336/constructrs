@@ -1,5 +1,8 @@
-import express from "express";
+import { createRequire } from 'module';
 import Project from "../models/project.js";
+
+const require = createRequire(import.meta.url);
+const express = require("express");
 import { 
   authenticateToken, 
   canManageProjects, 

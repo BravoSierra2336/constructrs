@@ -1,15 +1,18 @@
-import express from "express";
+import { createRequire } from 'module';
 import PDFReportGenerator from "../services/pdfGenerator.js";
 import { getDatabase } from "../db/connection.js";
 import User from "../models/user.js";
 import Project from "../models/project.js";
 import { authenticateToken } from "../middleware/auth.js";
-import jwt from "jsonwebtoken";
 import fs from "fs";
 import path from "path";
 
 // This help convert the id from string to ObjectId for the _id.
 import { ObjectId } from "mongodb";
+
+const require = createRequire(import.meta.url);
+const express = require("express");
+const jwt = require("jsonwebtoken");
 
 // router is an instance of the express router.
 // We use it to define our routes.

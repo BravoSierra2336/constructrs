@@ -1,6 +1,4 @@
-import express from "express";
-import cors from "cors";
-import session from "express-session";
+import { createRequire } from 'module';
 import passport from "./config/passport.js";
 import reports from "./routes/reports.js";
 import users from "./routes/users.js";
@@ -10,6 +8,11 @@ import projects from "./routes/projects.js";
 import admin from "./routes/admin.js";
 import path from 'path';
 import { fileURLToPath } from 'url';
+
+const require = createRequire(import.meta.url);
+const express = require("express");
+const cors = require("cors");
+const session = require("express-session");
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);

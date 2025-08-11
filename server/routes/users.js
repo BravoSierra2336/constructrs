@@ -1,6 +1,9 @@
-import express from "express";
+import { createRequire } from 'module';
 import User from "../models/user.js";
 import { authenticateToken, requireAdmin, requireAdminOrSelf } from "../middleware/auth.js";
+
+const require = createRequire(import.meta.url);
+const express = require("express");
 
 const router = express.Router();
 

@@ -1,5 +1,8 @@
-import express from 'express';
+import { createRequire } from 'module';
 import { authenticateToken, requireAdmin } from '../middleware/auth.js';
+
+const require = createRequire(import.meta.url);
+const express = require('express');
 import { 
   chatCompletion, 
   analyzeEmployeeData, 

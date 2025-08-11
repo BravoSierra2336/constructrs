@@ -1,9 +1,12 @@
-import express from "express";
+import { createRequire } from 'module';
 import fs from "fs";
 import path from "path";
 import { getDatabase } from "../db/connection.js";
 import { ObjectId } from "mongodb";
 import { authenticateToken, requireRole } from "../middleware/auth.js";
+
+const require = createRequire(import.meta.url);
+const express = require("express");
 
 const router = express.Router();
 
