@@ -1,6 +1,9 @@
 import { ObjectId } from "mongodb";
 import { getDatabase } from "../db/connection.js";
-import bcrypt from "bcryptjs";
+import { createRequire } from 'module';
+
+const require = createRequire(import.meta.url);
+const bcrypt = require("bcryptjs");
 
 // User model class
 class User {

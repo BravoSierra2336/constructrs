@@ -24,7 +24,9 @@ const requiredPackages = [
   'passport-microsoft',
   'openai',
   'dotenv',
-  'express-session'
+  'express-session',
+  'canvas',
+  'fontkit'
 ];
 
 let allPackagesFound = true;
@@ -47,6 +49,34 @@ try {
 } catch (error) {
   console.error('❌ PDFDocument instantiation failed:', error.message);
   allPackagesFound = false;
+}
+
+// Test OpenAI specifically
+try {
+  const OpenAI = require('openai');
+  const client = new OpenAI({ apiKey: 'test-key' });
+  console.log('✅ OpenAI client instantiation - Success');
+} catch (error) {
+  console.error('❌ OpenAI client instantiation failed:', error.message);
+  allPackagesFound = false;
+}
+
+// Test other critical packages
+const criticalTests = [
+  { name: 'bcryptjs', test: () => require('bcryptjs').hashSync('test', 10) },
+  { name: 'jsonwebtoken', test: () => require('jsonwebtoken').sign({test: true}, 'secret') },
+  { name: 'passport', test: () => require('passport') },
+  { name: 'dotenv', test: () => require('dotenv') }
+];
+
+for (const { name, test } of criticalTests) {
+  try {
+    test();
+    console.log(`✅ ${name} functionality - Success`);
+  } catch (error) {
+    console.error(`❌ ${name} functionality failed:`, error.message);
+    allPackagesFound = false;
+  }
 }
 
 if (allPackagesFound) {

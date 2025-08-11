@@ -1,5 +1,8 @@
-import jwt from "jsonwebtoken";
+import { createRequire } from 'module';
 import User from "../models/user.js";
+
+const require = createRequire(import.meta.url);
+const jwt = require("jsonwebtoken");
 
 // Secret key for JWT - in production, use environment variables
 const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key-change-in-production";

@@ -1,5 +1,8 @@
 import '../config/env.js'; // Load environment variables first
-import OpenAI from 'openai';
+import { createRequire } from 'module';
+
+const require = createRequire(import.meta.url);
+const OpenAI = require('openai');
 
 // Initialize OpenAI client with fallback handling
 const createOpenAIClient = () => {

@@ -1,6 +1,9 @@
-import passport from "passport";
-import { Strategy as MicrosoftStrategy } from "passport-microsoft";
+import { createRequire } from 'module';
 import User from "../models/user.js";
+
+const require = createRequire(import.meta.url);
+const passport = require("passport");
+const { Strategy: MicrosoftStrategy } = require("passport-microsoft");
 
 // Microsoft OAuth configuration
 const microsoftConfig = {
