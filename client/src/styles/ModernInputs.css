@@ -1,0 +1,358 @@
+/* Modern Input System - Global Styles with High Specificity */
+
+/* Root variables for consistent theming */
+:root {
+  --input-bg: rgba(255, 255, 255, 0.9);
+  --input-bg-focus: rgba(255, 255, 255, 0.95);
+  --input-border: rgba(226, 232, 240, 0.8);
+  --input-border-focus: #667eea;
+  --input-text: #374151;
+  --input-placeholder: #9ca3af;
+  --input-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  --input-shadow-focus: 0 0 0 3px rgba(102, 126, 234, 0.1), 0 4px 12px rgba(0, 0, 0, 0.08);
+  --input-radius: 12px;
+  --textarea-min-height: 100px;
+}
+
+/* Base input styles with high specificity */
+input.modern-input,
+textarea.modern-textarea,
+select.modern-select,
+.modern-input,
+.modern-textarea,
+.modern-select {
+  width: 100% !important;
+  padding: 14px 16px !important;
+  border: 2px solid var(--input-border) !important;
+  border-radius: var(--input-radius) !important;
+  font-size: 1rem !important;
+  font-family: inherit !important;
+  background: var(--input-bg) !important;
+  backdrop-filter: blur(12px) !important;
+  color: var(--input-text) !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  box-sizing: border-box !important;
+  box-shadow: var(--input-shadow) !important;
+  position: relative !important;
+  z-index: 1 !important;
+}
+
+/* Focus states with high specificity */
+input.modern-input:focus,
+textarea.modern-textarea:focus,
+select.modern-select:focus,
+.modern-input:focus,
+.modern-textarea:focus,
+.modern-select:focus {
+  outline: none !important;
+  border-color: var(--input-border-focus) !important;
+  background: var(--input-bg-focus) !important;
+  box-shadow: var(--input-shadow-focus) !important;
+  transform: translateY(-1px) !important;
+}
+
+/* Hover states */
+input.modern-input:hover:not(:focus),
+textarea.modern-textarea:hover:not(:focus),
+select.modern-select:hover:not(:focus),
+.modern-input:hover:not(:focus),
+.modern-textarea:hover:not(:focus),
+.modern-select:hover:not(:focus) {
+  border-color: rgba(102, 126, 234, 0.3) !important;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.08) !important;
+}
+
+/* Placeholder styles */
+input.modern-input::placeholder,
+textarea.modern-textarea::placeholder,
+.modern-input::placeholder,
+.modern-textarea::placeholder {
+  color: var(--input-placeholder) !important;
+  opacity: 1 !important;
+  transition: opacity 0.3s ease !important;
+}
+
+input.modern-input:focus::placeholder,
+textarea.modern-textarea:focus::placeholder,
+.modern-input:focus::placeholder,
+.modern-textarea:focus::placeholder {
+  opacity: 0.7 !important;
+}
+
+/* Textarea specific styles */
+.modern-textarea {
+  min-height: var(--textarea-min-height);
+  resize: vertical;
+  line-height: 1.6;
+  font-family: inherit;
+}
+
+/* Select specific styles */
+.modern-select {
+  cursor: pointer;
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+  background-position: right 12px center;
+  background-repeat: no-repeat;
+  background-size: 16px 12px;
+  padding-right: 40px;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+}
+
+.modern-select:focus {
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%23667eea' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+}
+
+/* Label styles */
+.modern-label {
+  display: block;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--input-text);
+  margin-bottom: 0.5rem;
+  letter-spacing: 0.025em;
+  position: relative;
+}
+
+/* Required indicator */
+.modern-label.required::after {
+  content: '*';
+  color: #ef4444;
+  margin-left: 4px;
+  font-weight: 700;
+}
+
+/* Form group container */
+.modern-form-group {
+  margin-bottom: 1.5rem;
+  position: relative;
+}
+
+/* Form row for side-by-side inputs */
+.modern-form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .modern-form-row {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+  
+  .modern-form-row .modern-form-group {
+    margin-bottom: 1.25rem;
+  }
+  
+  .modern-input,
+  .modern-textarea,
+  .modern-select {
+    padding: 12px 14px;
+    font-size: 0.95rem;
+  }
+}
+
+/* Error states */
+.modern-input.error,
+.modern-textarea.error,
+.modern-select.error {
+  border-color: #ef4444;
+  background: rgba(254, 226, 226, 0.5);
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+}
+
+.modern-input.error:focus,
+.modern-textarea.error:focus,
+.modern-select.error:focus {
+  border-color: #dc2626;
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.2);
+}
+
+/* Success states */
+.modern-input.success,
+.modern-textarea.success,
+.modern-select.success {
+  border-color: #10b981;
+  background: rgba(209, 250, 229, 0.5);
+}
+
+/* Disabled states */
+.modern-input:disabled,
+.modern-textarea:disabled,
+.modern-select:disabled {
+  background: rgba(243, 244, 246, 0.8);
+  border-color: rgba(209, 213, 219, 0.8);
+  color: rgba(107, 114, 128, 0.8);
+  cursor: not-allowed;
+  transform: none;
+}
+
+.modern-input:disabled::placeholder,
+.modern-textarea:disabled::placeholder {
+  color: rgba(156, 163, 175, 0.6);
+}
+
+/* Search input variant */
+.modern-search {
+  padding-left: 44px;
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%239ca3af'%3e%3cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m21 21-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z'%3e%3c/path%3e%3c/svg%3e");
+  background-position: 14px center;
+  background-repeat: no-repeat;
+  background-size: 20px 20px;
+}
+
+.modern-search:focus {
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23667eea'%3e%3cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m21 21-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z'%3e%3c/path%3e%3c/svg%3e");
+}
+
+/* Date input enhancements */
+.modern-input[type="date"],
+.modern-input[type="datetime-local"],
+.modern-input[type="time"] {
+  position: relative;
+  color-scheme: light;
+}
+
+/* Number input enhancements */
+.modern-input[type="number"] {
+  appearance: textfield;
+  -moz-appearance: textfield;
+}
+
+.modern-input[type="number"]::-webkit-outer-spin-button,
+.modern-input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* File input styling */
+.modern-file-input {
+  position: relative;
+  display: inline-block;
+  width: 100%;
+}
+
+.modern-file-input input[type="file"] {
+  position: absolute;
+  left: -9999px;
+  opacity: 0;
+}
+
+.modern-file-label {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 14px 16px;
+  border: 2px dashed var(--input-border);
+  border-radius: var(--input-radius);
+  background: var(--input-bg);
+  color: var(--input-text);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 1rem;
+  font-weight: 500;
+}
+
+.modern-file-label:hover {
+  border-color: var(--input-border-focus);
+  background: var(--input-bg-focus);
+}
+
+/* Floating label effect */
+.modern-floating-group {
+  position: relative;
+  margin-bottom: 1.5rem;
+}
+
+.modern-floating-input {
+  padding: 20px 16px 8px 16px;
+  border: 2px solid var(--input-border);
+  border-radius: var(--input-radius);
+  background: var(--input-bg);
+  font-size: 1rem;
+  width: 100%;
+  transition: all 0.3s ease;
+  box-sizing: border-box;
+}
+
+.modern-floating-label {
+  position: absolute;
+  left: 16px;
+  top: 16px;
+  font-size: 1rem;
+  color: var(--input-placeholder);
+  transition: all 0.3s ease;
+  pointer-events: none;
+  background: transparent;
+  font-weight: 500;
+}
+
+.modern-floating-input:focus,
+.modern-floating-input:not(:placeholder-shown) {
+  border-color: var(--input-border-focus);
+  box-shadow: var(--input-shadow-focus);
+}
+
+.modern-floating-input:focus + .modern-floating-label,
+.modern-floating-input:not(:placeholder-shown) + .modern-floating-label {
+  top: 4px;
+  font-size: 0.75rem;
+  color: var(--input-border-focus);
+  font-weight: 600;
+}
+
+/* Animation for smooth transitions */
+@keyframes inputFocus {
+  from {
+    transform: translateY(0);
+    box-shadow: var(--input-shadow);
+  }
+  to {
+    transform: translateY(-1px);
+    box-shadow: var(--input-shadow-focus);
+  }
+}
+
+/* Focus visible for accessibility */
+.modern-input:focus-visible,
+.modern-textarea:focus-visible,
+.modern-select:focus-visible {
+  outline: 2px solid var(--input-border-focus);
+  outline-offset: 2px;
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --input-bg: rgba(31, 41, 55, 0.9);
+    --input-bg-focus: rgba(31, 41, 55, 0.95);
+    --input-border: rgba(75, 85, 99, 0.8);
+    --input-text: #f9fafb;
+    --input-placeholder: #9ca3af;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .modern-input,
+  .modern-textarea,
+  .modern-select {
+    border-width: 3px;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .modern-input,
+  .modern-textarea,
+  .modern-select,
+  .modern-floating-label,
+  .modern-floating-input {
+    transition: none;
+  }
+}

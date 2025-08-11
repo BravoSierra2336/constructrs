@@ -53,14 +53,22 @@ router.get("/check-access", authenticateToken, async (req, res) => {
  */
 router.get("/reports", authenticateToken, requireRole(['admin', 'project_manager', 'supervisor']), async (req, res) => {
     try {
+        console.log("=== GET /admin/reports REQUEST START ===");
+        console.log("User:", req.user);
+        
         const database = await getDatabase();
         if (!database) {
+            console.log("ERROR: Database connection not available");
             return res.status(500).json({ error: "Database connection not available" });
         }
 
+        console.log("Database connection established");
+
         // Get all reports with PDF information
         const reportsCollection = database.collection("reports");
+        console.log("Getting reports from collection...");
         const reports = await reportsCollection.find({}).toArray();
+        console.log(`Found ${reports.length} reports in database`);
 
         // Get additional project and user information for each report
         const enrichedReports = await Promise.all(reports.map(async (report) => {
@@ -286,93 +294,53 @@ router.post("/reports/bulk-download", authenticateToken, requireRole(['admin', '
 });
 
 /**
- * DELETE /admin/reports/:id - Delete report and its PDF (Admin only)
- */
-router.delete("/reports/:id", authenticateToken, requireRole(['admin']), async (req, res) => {
-    try {
-        const database = await getDatabase();
-        if (!database) {
-            return res.status(500).json({ error: "Database connection not available" });
-        }
-
-        const reportsCollection = database.collection("reports");
-        const report = await reportsCollection.findOne({ _id: new ObjectId(req.params.id) });
-
-        if (!report) {
-            return res.status(404).json({ error: "Report not found" });
-        }
-
-        // Move the PDF file to deleted reports folder if it exists
-        let pdfMoved = false;
-        if (report.pdfPath && fs.existsSync(report.pdfPath)) {
-            try {
-                // Create deleted reports folder if it doesn't exist
-                const deletedReportsDir = path.join(process.cwd(), 'deleted-reports');
-                if (!fs.existsSync(deletedReportsDir)) {
-                    fs.mkdirSync(deletedReportsDir, { recursive: true });
-                }
-
-                const originalFilename = path.basename(report.pdfPath);
-                const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-                const newFilename = `${timestamp}-${originalFilename}`;
-                const newPath = path.join(deletedReportsDir, newFilename);
-                
-                fs.renameSync(report.pdfPath, newPath);
-                pdfMoved = true;
-                console.log(`Moved PDF file from ${report.pdfPath} to ${newPath}`);
-            } catch (pdfError) {
-                console.error(`Error moving PDF file: ${pdfError.message}`);
-            }
-        }
-
-        // Delete the report from database
-        const deleteResult = await reportsCollection.deleteOne({ _id: new ObjectId(req.params.id) });
-
-        if (deleteResult.deletedCount === 0) {
-            return res.status(404).json({ error: "Report not found in database" });
-        }
-
-        res.status(200).json({
-            success: true,
-            message: "Report deleted successfully",
-            pdfMoved,
-            reportId: req.params.id
-        });
-
-        // Log the deletion for audit purposes
-        console.log(`Admin ${req.user.email} deleted report ${req.params.id} and moved its PDF to deleted reports folder`);
-
-    } catch (err) {
-        console.error("Error deleting report:", err);
-        res.status(500).json({ 
-            error: "Error deleting report",
-            details: err.message 
-        });
-    }
-});
-
-/**
  * DELETE /admin/reports/bulk - Bulk delete reports (Admin only)
  * Accessible to: admin only
  */
 router.delete("/reports/bulk", authenticateToken, requireRole(['admin']), async (req, res) => {
     try {
+        console.log("=== BULK DELETE REQUEST START ===");
+        console.log("Request body:", JSON.stringify(req.body, null, 2));
+        console.log("User:", req.user);
+        
         const { reportIds } = req.body;
 
         if (!reportIds || !Array.isArray(reportIds) || reportIds.length === 0) {
+            console.log("ERROR: Invalid reportIds:", reportIds);
             return res.status(400).json({ error: "Report IDs array is required" });
         }
 
+        console.log("Report IDs to delete:", reportIds);
+
         const database = await getDatabase();
         if (!database) {
+            console.log("ERROR: Database connection not available");
             return res.status(500).json({ error: "Database connection not available" });
         }
 
+        console.log("Database connection established");
+
         const reportsCollection = database.collection("reports");
+        
+        // Convert string IDs to ObjectIds with error handling
+        let objectIds;
+        try {
+            objectIds = reportIds.map(id => {
+                console.log("Converting ID:", id, "Type:", typeof id);
+                if (!ObjectId.isValid(id)) {
+                    throw new Error(`Invalid ObjectId: ${id}`);
+                }
+                return new ObjectId(id);
+            });
+            console.log("Successfully converted to ObjectIds:", objectIds);
+        } catch (idError) {
+            console.error("Error converting report IDs to ObjectId:", idError);
+            return res.status(400).json({ error: "Invalid report ID format", details: idError.message });
+        }
         
         // Get all reports to delete (to find PDF paths)
         const reportsToDelete = await reportsCollection.find({
-            _id: { $in: reportIds.map(id => new ObjectId(id)) }
+            _id: { $in: objectIds }
         }).toArray();
 
         // Create deleted reports folder if it doesn't exist
@@ -405,7 +373,7 @@ router.delete("/reports/bulk", authenticateToken, requireRole(['admin']), async 
 
         // Delete reports from database
         const deleteResult = await reportsCollection.deleteMany({
-            _id: { $in: reportIds.map(id => new ObjectId(id)) }
+            _id: { $in: objectIds }
         });
 
         res.status(200).json({
@@ -491,6 +459,72 @@ router.delete("/reports/all", authenticateToken, requireRole(['admin']), async (
         console.error("Error deleting all reports:", err);
         res.status(500).json({ 
             error: "Error deleting all reports",
+            details: err.message 
+        });
+    }
+});
+
+/**
+ * DELETE /admin/reports/:id - Delete report and its PDF (Admin only)
+ */
+router.delete("/reports/:id", authenticateToken, requireRole(['admin']), async (req, res) => {
+    try {
+        const database = await getDatabase();
+        if (!database) {
+            return res.status(500).json({ error: "Database connection not available" });
+        }
+
+        const reportsCollection = database.collection("reports");
+        const report = await reportsCollection.findOne({ _id: new ObjectId(req.params.id) });
+
+        if (!report) {
+            return res.status(404).json({ error: "Report not found" });
+        }
+
+        // Move the PDF file to deleted reports folder if it exists
+        let pdfMoved = false;
+        if (report.pdfPath && fs.existsSync(report.pdfPath)) {
+            try {
+                // Create deleted reports folder if it doesn't exist
+                const deletedReportsDir = path.join(process.cwd(), 'deleted-reports');
+                if (!fs.existsSync(deletedReportsDir)) {
+                    fs.mkdirSync(deletedReportsDir, { recursive: true });
+                }
+
+                const originalFilename = path.basename(report.pdfPath);
+                const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+                const newFilename = `${timestamp}-${originalFilename}`;
+                const newPath = path.join(deletedReportsDir, newFilename);
+                
+                fs.renameSync(report.pdfPath, newPath);
+                pdfMoved = true;
+                console.log(`Moved PDF file from ${report.pdfPath} to ${newPath}`);
+            } catch (pdfError) {
+                console.error(`Error moving PDF file: ${pdfError.message}`);
+            }
+        }
+
+        // Delete the report from database
+        const deleteResult = await reportsCollection.deleteOne({ _id: new ObjectId(req.params.id) });
+
+        if (deleteResult.deletedCount === 0) {
+            return res.status(404).json({ error: "Report not found in database" });
+        }
+
+        res.status(200).json({
+            success: true,
+            message: "Report deleted successfully",
+            pdfMoved,
+            reportId: req.params.id
+        });
+
+        // Log the deletion for audit purposes
+        console.log(`Admin ${req.user.email} deleted report ${req.params.id} and moved its PDF to deleted reports folder`);
+
+    } catch (err) {
+        console.error("Error deleting report:", err);
+        res.status(500).json({ 
+            error: "Error deleting report",
             details: err.message 
         });
     }

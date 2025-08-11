@@ -7,7 +7,7 @@ const microsoftConfig = {
   clientID: process.env.MICROSOFT_CLIENT_ID || "your-microsoft-client-id",
   clientSecret: process.env.MICROSOFT_CLIENT_SECRET || "your-microsoft-client-secret",
   callbackURL: process.env.MICROSOFT_CALLBACK_URL || "http://localhost:5050/auth/microsoft/callback",
-  scope: ["user.read"],
+  scope: ["user.read", "user.readbasic.all"],
   tenant: "common" // Use "common" for multi-tenant, or your specific tenant ID
 };
 

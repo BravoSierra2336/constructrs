@@ -10,6 +10,7 @@ import AdminDashboard from './components/AdminDashboard.jsx';
 import CreateReport from './components/CreateReport.jsx';
 import { AuthProvider, useAuth } from './contexts/AuthContext.jsx';
 import './App.css';
+import './styles/ModernInputs.css';
 
 // Protected Route component
 const ProtectedRoute = ({ children, requiredRole }) => {

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '../contexts/AuthContext.jsx';
 import axios from 'axios';
 
 const CreateReport = () => {
@@ -111,12 +111,12 @@ const CreateReport = () => {
       <div className="card">
         <form onSubmit={handleSubmit}>
           {/* Basic Information */}
-          <div className="form-group">
-            <label className="form-label">Report Title *</label>
+          <div className="modern-form-group">
+            <label className="modern-label required">Report Title</label>
             <input
               type="text"
               name="title"
-              className="form-input"
+              className="modern-input"
               value={formData.title}
               onChange={handleInputChange}
               placeholder="Enter a descriptive title for this report"
@@ -124,12 +124,12 @@ const CreateReport = () => {
             />
           </div>
 
-          <div className="form-row">
-            <div className="form-group">
-              <label className="form-label">Project *</label>
+          <div className="modern-form-row">
+            <div className="modern-form-group">
+              <label className="modern-label required">Project</label>
               <select
                 name="projectId"
-                className="form-select"
+                className="modern-select"
                 value={formData.projectId}
                 onChange={handleInputChange}
                 required
@@ -143,11 +143,11 @@ const CreateReport = () => {
               </select>
             </div>
 
-            <div className="form-group">
-              <label className="form-label">Inspection Type *</label>
+            <div className="modern-form-group">
+              <label className="modern-label required">Inspection Type</label>
               <select
                 name="inspectionType"
-                className="form-select"
+                className="modern-select"
                 value={formData.inspectionType}
                 onChange={handleInputChange}
                 required
@@ -161,11 +161,11 @@ const CreateReport = () => {
             </div>
           </div>
 
-          <div className="form-group">
-            <label className="form-label">Description</label>
+          <div className="modern-form-group">
+            <label className="modern-label">Description</label>
             <textarea
               name="description"
-              className="form-textarea"
+              className="modern-textarea"
               value={formData.description}
               onChange={handleInputChange}
               placeholder="Provide a brief description of the inspection scope and purpose"
@@ -174,11 +174,11 @@ const CreateReport = () => {
           </div>
 
           {/* Inspection Details */}
-          <div className="form-group">
-            <label className="form-label">Findings *</label>
+          <div className="modern-form-group">
+            <label className="modern-label required">Findings</label>
             <textarea
               name="findings"
-              className="form-textarea"
+              className="modern-textarea"
               value={formData.findings}
               onChange={handleInputChange}
               placeholder="Document your inspection findings, observations, and any issues discovered"
@@ -187,11 +187,11 @@ const CreateReport = () => {
             />
           </div>
 
-          <div className="form-group">
-            <label className="form-label">Recommendations</label>
+          <div className="modern-form-group">
+            <label className="modern-label">Recommendations</label>
             <textarea
               name="recommendations"
-              className="form-textarea"
+              className="modern-textarea"
               value={formData.recommendations}
               onChange={handleInputChange}
               placeholder="Provide recommendations for addressing any issues or improving processes"
@@ -199,11 +199,11 @@ const CreateReport = () => {
             />
           </div>
 
-          <div className="form-group">
-            <label className="form-label">Status</label>
+          <div className="modern-form-group">
+            <label className="modern-label">Status</label>
             <select
               name="status"
-              className="form-select"
+              className="modern-select"
               value={formData.status}
               onChange={handleInputChange}
             >

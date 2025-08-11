@@ -142,6 +142,29 @@ export const AuthProvider = ({ children }) => {
     localStorage.setItem('userData', JSON.stringify(updatedUser));
   };
 
+  const fetchProfilePhoto = async () => {
+    try {
+      const token = localStorage.getItem('authToken');
+      if (!token) {
+        console.log('No auth token found for profile photo');
+        return null;
+      }
+
+      console.log('Fetching profile photo with token:', token.substring(0, 20) + '...');
+      const response = await axios.get('http://localhost:5050/auth/profile/photo', {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      console.log('Profile photo response:', response.data);
+      return response.data.profilePhotoUrl;
+    } catch (error) {
+      console.error('Error fetching profile photo:', error);
+      return null;
+    }
+  };
+
   const value = {
     user,
     isAuthenticated,
@@ -150,7 +173,8 @@ export const AuthProvider = ({ children }) => {
     loginWithMicrosoft,
     logout,
     register,
-    updateUser
+    updateUser,
+    fetchProfilePhoto
   };
 
   return (

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '../contexts/AuthContext.jsx';
 import axios from 'axios';
 
 const Projects = () => {
@@ -241,47 +241,50 @@ const Projects = () => {
             </div>
             
             <form onSubmit={handleCreateProject}>
-              <div className="form-group">
-                <label className="form-label">Project Name</label>
+              <div className="modern-form-group">
+                <label className="modern-label required">Project Name</label>
                 <input
                   type="text"
                   name="name"
-                  className="form-input"
+                  className="modern-input"
                   value={newProject.name}
                   onChange={handleInputChange}
+                  placeholder="Enter project name"
                   required
                 />
               </div>
               
-              <div className="form-group">
-                <label className="form-label">Description</label>
+              <div className="modern-form-group">
+                <label className="modern-label">Description</label>
                 <textarea
                   name="description"
-                  className="form-textarea"
+                  className="modern-textarea"
                   value={newProject.description}
                   onChange={handleInputChange}
+                  placeholder="Describe the project scope and objectives"
                   rows="3"
                 />
               </div>
               
-              <div className="form-group">
-                <label className="form-label">Location</label>
+              <div className="modern-form-group">
+                <label className="modern-label required">Location</label>
                 <input
                   type="text"
                   name="location"
-                  className="form-input"
+                  className="modern-input"
                   value={newProject.location}
                   onChange={handleInputChange}
+                  placeholder="Project location or address"
                   required
                 />
               </div>
               
-              <div className="form-group">
-                <label className="form-label">Start Date</label>
+              <div className="modern-form-group">
+                <label className="modern-label">Start Date</label>
                 <input
                   type="date"
                   name="startDate"
-                  className="form-input"
+                  className="modern-input"
                   value={newProject.startDate}
                   onChange={handleInputChange}
                 />

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '../contexts/AuthContext.jsx';
 import { useNavigate } from 'react-router-dom';
+import './Login.css';
 
 const Login = () => {
   const [formData, setFormData] = useState({
@@ -92,26 +93,28 @@ const Login = () => {
           <>
             {/* Login Form */}
             <form onSubmit={handleLogin}>
-              <div className="form-group">
-                <label className="form-label">Email</label>
+              <div className="modern-form-group">
+                <label className="modern-label">Email</label>
                 <input
                   type="email"
                   name="email"
-                  className="form-input"
+                  className="modern-input"
                   value={formData.email}
                   onChange={handleInputChange}
+                  placeholder="Enter your email address"
                   required
                 />
               </div>
               
-              <div className="form-group">
-                <label className="form-label">Password</label>
+              <div className="modern-form-group">
+                <label className="modern-label">Password</label>
                 <input
                   type="password"
                   name="password"
-                  className="form-input"
+                  className="modern-input"
                   value={formData.password}
                   onChange={handleInputChange}
+                  placeholder="Enter your password"
                   required
                 />
               </div>
@@ -162,49 +165,52 @@ const Login = () => {
           <>
             {/* Registration Form */}
             <form onSubmit={handleRegister}>
-              <div className="form-row">
-                <div className="form-group">
-                  <label className="form-label">First Name</label>
+              <div className="modern-form-row">
+                <div className="modern-form-group">
+                  <label className="modern-label">First Name</label>
                   <input
                     type="text"
                     name="firstName"
-                    className="form-input"
+                    className="modern-input"
                     value={registerData.firstName}
                     onChange={handleRegisterChange}
+                    placeholder="First name"
                     required
                   />
                 </div>
                 
-                <div className="form-group">
-                  <label className="form-label">Last Name</label>
+                <div className="modern-form-group">
+                  <label className="modern-label">Last Name</label>
                   <input
                     type="text"
                     name="lastName"
-                    className="form-input"
+                    className="modern-input"
                     value={registerData.lastName}
                     onChange={handleRegisterChange}
+                    placeholder="Last name"
                     required
                   />
                 </div>
               </div>
               
-              <div className="form-group">
-                <label className="form-label">Email</label>
+              <div className="modern-form-group">
+                <label className="modern-label">Email</label>
                 <input
                   type="email"
                   name="email"
-                  className="form-input"
+                  className="modern-input"
                   value={registerData.email}
                   onChange={handleRegisterChange}
+                  placeholder="Enter your email address"
                   required
                 />
               </div>
               
-              <div className="form-group">
-                <label className="form-label">Role</label>
+              <div className="modern-form-group">
+                <label className="modern-label">Role</label>
                 <select
                   name="role"
-                  className="form-select"
+                  className="modern-select"
                   value={registerData.role}
                   onChange={handleRegisterChange}
                   required
@@ -216,27 +222,29 @@ const Login = () => {
                 </select>
               </div>
               
-              <div className="form-row">
-                <div className="form-group">
-                  <label className="form-label">Password</label>
+              <div className="modern-form-row">
+                <div className="modern-form-group">
+                  <label className="modern-label">Password</label>
                   <input
                     type="password"
                     name="password"
-                    className="form-input"
+                    className="modern-input"
                     value={registerData.password}
                     onChange={handleRegisterChange}
+                    placeholder="Enter password"
                     required
                   />
                 </div>
                 
-                <div className="form-group">
-                  <label className="form-label">Confirm Password</label>
+                <div className="modern-form-group">
+                  <label className="modern-label">Confirm Password</label>
                   <input
                     type="password"
                     name="confirmPassword"
-                    className="form-input"
+                    className="modern-input"
                     value={registerData.confirmPassword}
                     onChange={handleRegisterChange}
+                    placeholder="Confirm password"
                     required
                   />
                 </div>

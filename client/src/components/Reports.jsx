@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '../contexts/AuthContext.jsx';
 import axios from 'axios';
 
 const Reports = () => {
@@ -88,7 +88,8 @@ const Reports = () => {
         return;
       }
       
-      if (!report.pdfExists && !report.pdfPath) {
+      // Check if PDF exists using pdfPath property
+      if (!report.pdfPath) {
         setError('PDF is still being generated. Please try again in a moment.');
         return;
       }
@@ -97,18 +98,53 @@ const Reports = () => {
       const token = localStorage.getItem('authToken');
       const downloadUrl = `/reports/${reportId}/pdf`;
       
-      // Create a temporary link to download the PDF
-      const link = document.createElement('a');
-      link.href = downloadUrl;
-      link.target = '_blank';
-      link.download = `report-${reportId}.pdf`;
-      
       // Add authorization header by opening in new window with token
       window.open(`${downloadUrl}?token=${token}`, '_blank');
       
     } catch (error) {
       console.error('Error downloading PDF:', error);
       setError('Failed to download PDF. Please try again.');
+    }
+  };
+
+  const deleteReport = async (reportId, reportTitle) => {
+    // Check if user is admin before attempting deletion
+    if (!isAdmin()) {
+      setError('Only admin users can delete reports.');
+      return;
+    }
+
+    if (!window.confirm(`Are you sure you want to delete the report "${reportTitle}"? The PDF will be moved to backup folder.`)) {
+      return;
+    }
+
+    try {
+      const response = await axios.delete(`/reports/${reportId}`);
+      
+      if (response.data.success) {
+        // Remove the deleted report from the local state
+        setReports(reports.filter(r => r._id !== reportId));
+        setError(''); // Clear any previous errors
+        
+        // Show success message temporarily
+        const successMessage = 'Report deleted successfully - PDF moved to backup folder';
+        setError(successMessage);
+        setTimeout(() => {
+          if (error === successMessage) {
+            setError('');
+          }
+        }, 3000);
+      }
+    } catch (error) {
+      console.error('Error deleting report:', error);
+      console.error('Error response:', error.response?.data);
+      if (error.response?.status === 403) {
+        setError('You do not have permission to delete reports. Admin role required.');
+      } else if (error.response?.status === 404) {
+        setError('Report not found.');
+      } else {
+        setError('Failed to delete report. Please try again.');
+      }
     }
   };
 
@@ -129,6 +165,13 @@ const Reports = () => {
 
   const canCreateReports = () => {
     return ['admin', 'project_manager', 'supervisor', 'inspector'].includes(user?.role);
+  };
+
+  const isAdmin = () => {
+    console.log('Current user:', user);
+    console.log('User role:', user?.role);
+    console.log('Is admin check:', user?.role === 'admin');
+    return user?.role === 'admin';
   };
 
   if (loading) {
@@ -231,7 +274,7 @@ const Reports = () => {
                     <td>{getInspectorName(report)}</td>
                     <td>{formatDate(report.createdAt)}</td>
                     <td>
-                      {report.pdfExists ? (
+                      {report.pdfPath ? (
                         <span className="status-badge status-success">
                           ✅ Available
                         </span>
@@ -247,18 +290,19 @@ const Reports = () => {
                           className="btn btn-secondary"
                           style={{ fontSize: '0.85rem', padding: '6px 12px' }}
                           onClick={() => downloadPDF(report._id)}
-                          disabled={!report.pdfExists}
-                          title={report.pdfExists ? 'Download report PDF' : 'PDF not available yet'}
+                          disabled={!report.pdfPath}
+                          title={report.pdfPath ? 'Download report PDF' : 'PDF not available yet'}
                         >
                           👁️ View Report
                         </button>
-                        {report.pdfExists && (
+                        {isAdmin() && (
                           <button
-                            className="btn btn-primary"
+                            className="btn btn-danger"
                             style={{ fontSize: '0.85rem', padding: '6px 12px' }}
-                            onClick={() => downloadPDF(report._id)}
+                            onClick={() => deleteReport(report._id, report.title || 'Untitled Report')}
+                            title={`Delete this report (Admin only) - Current role: ${user?.role || 'unknown'}`}
                           >
-                            📥 Download PDF
+                            🗑️ Delete
                           </button>
                         )}
                       </div>
@@ -280,7 +324,7 @@ const Reports = () => {
           </div>
           <div className="stat-card">
             <div className="stat-number">
-              {filteredReports.filter(r => r.pdfExists).length}
+              {filteredReports.filter(r => r.pdfPath).length}
             </div>
             <div className="stat-label">PDFs Available</div>
           </div>

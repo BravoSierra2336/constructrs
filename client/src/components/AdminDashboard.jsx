@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '../contexts/AuthContext.jsx';
 import axios from 'axios';
+import './AdminDashboard.css';
 
 const AdminDashboard = () => {
   const { user, loading: authLoading } = useAuth();
@@ -36,6 +37,24 @@ const AdminDashboard = () => {
   const loadReports = async () => {
     try {
       setLoading(true);
+      
+      // First check if user has admin access
+      try {
+        const accessCheck = await axios.get('/admin/check-access');
+        console.log('Admin access check:', accessCheck.data);
+        
+        if (!accessCheck.data.hasAdminAccess) {
+          setError(`Access denied. You need one of these roles: ${accessCheck.data.requiredRoles.join(', ')}. Your current role: ${accessCheck.data.user.role || 'none'}`);
+          return;
+        }
+      } catch (accessError) {
+        console.error('Access check failed:', accessError);
+        if (accessError.response?.status === 403) {
+          setError('You do not have permission to access the admin dashboard. Required roles: admin, project_manager, or supervisor.');
+          return;
+        }
+      }
+
       const response = await axios.get('/admin/reports');
       const reportsData = response.data.reports || [];
       setReports(reportsData);
@@ -50,7 +69,11 @@ const AdminDashboard = () => {
       
     } catch (error) {
       console.error('Error loading reports:', error);
-      setError('Error loading reports: ' + (error.response?.data?.error || error.message));
+      if (error.response?.status === 403) {
+        setError('Access denied. You need admin, project_manager, or supervisor role to access this dashboard.');
+      } else {
+        setError('Error loading reports: ' + (error.response?.data?.error || error.message));
+      }
     } finally {
       setLoading(false);
     }
@@ -84,9 +107,9 @@ const AdminDashboard = () => {
 
     if (pdfFilter) {
       if (pdfFilter === 'with-pdf') {
-        filtered = filtered.filter(report => report.pdfExists);
+        filtered = filtered.filter(report => report.pdfPath);
       } else if (pdfFilter === 'without-pdf') {
-        filtered = filtered.filter(report => !report.pdfExists);
+        filtered = filtered.filter(report => !report.pdfPath);
       }
     }
 
@@ -129,14 +152,64 @@ const AdminDashboard = () => {
     }
   };
 
+  const bulkDelete = async () => {
+    if (selectedReports.length === 0) {
+      setError('Please select reports to delete');
+      return;
+    }
+
+    if (!window.confirm(`Are you sure you want to delete ${selectedReports.length} selected reports? PDFs will be moved to backup folder.`)) {
+      return;
+    }
+
+    try {
+      const response = await axios.delete('/admin/reports/bulk', {
+        data: { reportIds: selectedReports }
+      });
+
+      setSuccess(`Successfully deleted ${response.data.deletedReports} reports and moved ${response.data.movedPDFs} PDFs to backup folder`);
+      setSelectedReports([]);
+      loadReports();
+      loadStats();
+    } catch (error) {
+      setError('Error with bulk delete: ' + (error.response?.data?.error || error.message));
+    }
+  };
+
+  const deleteAllReports = async () => {
+    if (!window.confirm('⚠️ DANGER: Are you sure you want to delete ALL reports? PDFs will be moved to backup folder. This will permanently remove all inspection reports from the system database.')) {
+      return;
+    }
+
+    if (!window.confirm('This is your final warning. Type DELETE in the next prompt to confirm.')) {
+      return;
+    }
+
+    const confirmation = window.prompt('Type "DELETE" to confirm deletion of all reports:');
+    if (confirmation !== 'DELETE') {
+      setError('Deletion cancelled - confirmation text did not match');
+      return;
+    }
+
+    try {
+      const response = await axios.delete('/admin/reports/all');
+      setSuccess(`Successfully deleted all ${response.data.deletedReports} reports and moved ${response.data.movedPDFs} PDFs to backup folder`);
+      setSelectedReports([]);
+      loadReports();
+      loadStats();
+    } catch (error) {
+      setError('Error deleting all reports: ' + (error.response?.data?.error || error.message));
+    }
+  };
+
   const deleteReport = async (reportId) => {
-    if (!window.confirm('Are you sure you want to delete this report and its PDF? This action cannot be undone.')) {
+    if (!window.confirm('Are you sure you want to delete this report? The PDF will be moved to backup folder.')) {
       return;
     }
 
     try {
       await axios.delete(`/admin/reports/${reportId}`);
-      setSuccess('Report deleted successfully');
+      setSuccess('Report deleted successfully and PDF moved to backup folder');
       loadReports();
       loadStats();
     } catch (error) {
@@ -182,184 +255,266 @@ const AdminDashboard = () => {
   }
 
   return (
-    <div className="container">
-      {error && <div className="error">{error}</div>}
-      {success && <div className="success">{success}</div>}
+    <div className="modern-admin-dashboard">
+      {/* Background */}
+      <div className="dashboard-background"></div>
       
-      {/* Page Header */}
-      <div className="page-header">
-        <h1 className="page-title">⚙️ Admin Dashboard</h1>
-        <p className="page-description">
-          Manage Construction Reports & PDFs - Project Administrator Access
-        </p>
-      </div>
+      {/* Content Container */}
+      <div className="dashboard-container">
+        {/* Alert Messages */}
+        {error && (
+          <div className="alert alert-error">
+            <div className="alert-icon">⚠️</div>
+            <div className="alert-content">
+              <strong>Error:</strong> {error}
+            </div>
+          </div>
+        )}
+        {success && (
+          <div className="alert alert-success">
+            <div className="alert-icon">✅</div>
+            <div className="alert-content">
+              <strong>Success:</strong> {success}
+            </div>
+          </div>
+        )}
+        
+        {/* Page Header */}
+        <div className="page-header-modern">
+          <div className="header-content">
+            <div className="header-icon">⚙️</div>
+            <div className="header-text">
+              <h1 className="page-title-modern">Admin Dashboard</h1>
+              <p className="page-subtitle">Manage Construction Reports & PDFs</p>
+            </div>
+          </div>
+          <div className="header-badge">Administrator Access</div>
+        </div>
 
-      {/* Statistics Cards */}
-      <div className="stats-grid">
-        <div className="stat-card">
-          <div className="stat-number">{stats.totalReports}</div>
-          <div className="stat-label">Total Reports</div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-number">{stats.reportsWithPDFs}</div>
-          <div className="stat-label">Reports with PDFs</div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-number">{stats.totalPDFSize}</div>
-          <div className="stat-label">Total PDF Size (MB)</div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-number">{stats.averagePDFSize}</div>
-          <div className="stat-label">Avg PDF Size (KB)</div>
-        </div>
-      </div>
-
-      {/* Controls */}
-      <div className="search-and-filter">
-        <h3 style={{ marginBottom: '20px', color: '#333' }}>📋 Report Management</h3>
-        <div className="filter-row">
-          <input
-            type="text"
-            placeholder="Search reports by title, author, or project..."
-            className="search-input"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-          <select
-            className="form-select"
-            value={projectFilter}
-            onChange={(e) => setProjectFilter(e.target.value)}
-            style={{ minWidth: '200px' }}
-          >
-            <option value="">All Projects</option>
-            {projects.map(project => (
-              <option key={project} value={project}>
-                {project}
-              </option>
-            ))}
-          </select>
-          <select
-            className="form-select"
-            value={pdfFilter}
-            onChange={(e) => setPdfFilter(e.target.value)}
-            style={{ minWidth: '150px' }}
-          >
-            <option value="">PDF Status</option>
-            <option value="with-pdf">With PDF</option>
-            <option value="without-pdf">Without PDF</option>
-          </select>
-          <button className="btn btn-primary" onClick={loadReports}>
-            🔄 Refresh
-          </button>
-        </div>
-        <div className="filter-row">
-          <button className="btn btn-success" onClick={bulkDownload}>
-            📦 Bulk Download Selected
-          </button>
-          <button className="btn btn-secondary" onClick={selectAllReports}>
-            ✅ Select All
-          </button>
-          <button className="btn btn-secondary" onClick={clearSelection}>
-            ❌ Clear Selection
-          </button>
-        </div>
-      </div>
-
-      {/* Reports Table */}
-      {filteredReports.length === 0 ? (
-        <div className="card" style={{ textAlign: 'center', padding: '50px' }}>
-          <h3 style={{ color: '#666', marginBottom: '10px' }}>No Reports Found</h3>
-          <p style={{ color: '#999' }}>
-            {searchTerm || projectFilter || pdfFilter ? 'Try adjusting your search filters.' : 'No reports have been created yet.'}
-          </p>
-        </div>
-      ) : (
-        <div className="card">
-          <div className="table">
-            <table>
-              <thead>
-                <tr>
-                  <th>
-                    <input
-                      type="checkbox"
-                      checked={selectedReports.length === filteredReports.length && filteredReports.length > 0}
-                      onChange={(e) => {
-                        if (e.target.checked) {
-                          selectAllReports();
-                        } else {
-                          clearSelection();
-                        }
-                      }}
-                    />
-                  </th>
-                  <th>Report Title</th>
-                  <th>Project</th>
-                  <th>Inspector</th>
-                  <th>Created Date</th>
-                  <th>PDF Status</th>
-                  <th>PDF Size</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredReports.map(report => (
-                  <tr key={report._id}>
-                    <td>
-                      <input
-                        type="checkbox"
-                        checked={selectedReports.includes(report._id)}
-                        onChange={() => handleReportSelection(report._id)}
-                      />
-                    </td>
-                    <td>
-                      <strong>{report.title || 'Untitled'}</strong>
-                    </td>
-                    <td>{getProjectName(report)}</td>
-                    <td>{getInspectorName(report)}</td>
-                    <td>{formatDate(report.createdAt)}</td>
-                    <td>
-                      {report.pdfExists ? (
-                        <span className="status-badge status-success">✅ Available</span>
-                      ) : (
-                        <span className="status-badge status-danger">❌ Missing</span>
-                      )}
-                    </td>
-                    <td>{report.pdfSize ? `${report.pdfSize} KB` : 'N/A'}</td>
-                    <td>
-                      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                        {report.pdfExists ? (
-                          <button
-                            className="btn btn-primary"
-                            style={{ fontSize: '0.85rem', padding: '6px 12px' }}
-                            onClick={() => downloadPDF(report._id)}
-                          >
-                            📥 Download
-                          </button>
-                        ) : (
-                          <button
-                            className="btn btn-secondary"
-                            style={{ fontSize: '0.85rem', padding: '6px 12px' }}
-                            disabled
-                          >
-                            🔄 Generate
-                          </button>
-                        )}
-                        <button
-                          className="btn btn-danger"
-                          style={{ fontSize: '0.85rem', padding: '6px 12px' }}
-                          onClick={() => deleteReport(report._id)}
-                        >
-                          🗑️ Delete
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+        {/* Statistics Cards */}
+        <div className="stats-grid-modern">
+          <div className="stat-card-modern stat-primary">
+            <div className="stat-icon">📊</div>
+            <div className="stat-content">
+              <div className="stat-number">{stats.totalReports}</div>
+              <div className="stat-label">Total Reports</div>
+            </div>
+          </div>
+          <div className="stat-card-modern stat-success">
+            <div className="stat-icon">📄</div>
+            <div className="stat-content">
+              <div className="stat-number">{stats.reportsWithPDFs}</div>
+              <div className="stat-label">With PDFs</div>
+            </div>
+          </div>
+          <div className="stat-card-modern stat-info">
+            <div className="stat-icon">💾</div>
+            <div className="stat-content">
+              <div className="stat-number">{stats.totalPDFSize}</div>
+              <div className="stat-label">Total Size (MB)</div>
+            </div>
+          </div>
+          <div className="stat-card-modern stat-warning">
+            <div className="stat-icon">📏</div>
+            <div className="stat-content">
+              <div className="stat-number">{stats.averagePDFSize}</div>
+              <div className="stat-label">Avg Size (KB)</div>
+            </div>
           </div>
         </div>
-      )}
+
+        {/* Controls Card */}
+        <div className="card-modern controls-card">
+          <div className="card-header">
+            <h3 className="card-title">📋 Report Management</h3>
+            <div className="card-badge">{filteredReports.length} Reports</div>
+          </div>
+          
+          {/* Search and Filter Row */}
+          <div className="filter-row-modern">
+            <div className="search-group">
+              <input
+                type="text"
+                placeholder="Search reports by title, author, or project..."
+                className="modern-search"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+            <select
+              className="modern-select"
+              value={projectFilter}
+              onChange={(e) => setProjectFilter(e.target.value)}
+            >
+              <option value="">All Projects</option>
+              {projects.map(project => (
+                <option key={project} value={project}>
+                  {project}
+                </option>
+              ))}
+            </select>
+            <select
+              className="modern-select"
+              value={pdfFilter}
+              onChange={(e) => setPdfFilter(e.target.value)}
+            >
+              <option value="">PDF Status</option>
+              <option value="with-pdf">With PDF</option>
+              <option value="without-pdf">Without PDF</option>
+            </select>
+            <button className="btn-modern btn-primary" onClick={loadReports}>
+              <span className="btn-icon">🔄</span>
+              Refresh
+            </button>
+          </div>
+          
+          {/* Action Buttons Row */}
+          <div className="action-row-modern">
+            <div className="action-group">
+              <button className="btn-modern btn-success" onClick={bulkDownload}>
+                <span className="btn-icon">📦</span>
+                Bulk Download Selected
+              </button>
+              <button className="btn-modern btn-warning" onClick={bulkDelete}>
+                <span className="btn-icon">🗑️</span>
+                Delete Selected
+              </button>
+              <button className="btn-modern btn-secondary" onClick={selectAllReports}>
+                <span className="btn-icon">✅</span>
+                Select All
+              </button>
+              <button className="btn-modern btn-secondary" onClick={clearSelection}>
+                <span className="btn-icon">❌</span>
+                Clear Selection
+              </button>
+            </div>
+            <button 
+              className="btn-modern btn-danger btn-danger-special" 
+              onClick={deleteAllReports}
+            >
+              <span className="btn-icon">💥</span>
+              DELETE ALL REPORTS
+            </button>
+          </div>
+        </div>
+
+        {/* Reports Table Card */}
+        {filteredReports.length === 0 ? (
+          <div className="card-modern empty-state">
+            <div className="empty-icon">📂</div>
+            <h3 className="empty-title">No Reports Found</h3>
+            <p className="empty-description">
+              {searchTerm || projectFilter || pdfFilter 
+                ? 'Try adjusting your search filters to find more reports.' 
+                : 'No reports have been created yet. Create your first report to get started.'}
+            </p>
+          </div>
+        ) : (
+          <div className="card-modern table-card">
+            <div className="table-container-modern">
+              <table className="table-modern">
+                <thead>
+                  <tr>
+                    <th className="checkbox-col">
+                      <input
+                        type="checkbox"
+                        className="checkbox-modern"
+                        checked={selectedReports.length === filteredReports.length && filteredReports.length > 0}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            selectAllReports();
+                          } else {
+                            clearSelection();
+                          }
+                        }}
+                      />
+                    </th>
+                    <th>Report Title</th>
+                    <th>Project</th>
+                    <th>Inspector</th>
+                    <th>Created Date</th>
+                    <th>PDF Status</th>
+                    <th>PDF Size</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredReports.map(report => (
+                    <tr key={report._id} className={selectedReports.includes(report._id) ? 'selected' : ''}>
+                      <td>
+                        <input
+                          type="checkbox"
+                          className="checkbox-modern"
+                          checked={selectedReports.includes(report._id)}
+                          onChange={() => handleReportSelection(report._id)}
+                        />
+                      </td>
+                      <td>
+                        <div className="report-title">
+                          <strong>{report.title || 'Untitled'}</strong>
+                        </div>
+                      </td>
+                      <td>
+                        <div className="project-name">{getProjectName(report)}</div>
+                      </td>
+                      <td>
+                        <div className="inspector-name">{getInspectorName(report)}</div>
+                      </td>
+                      <td>
+                        <div className="date-display">{formatDate(report.createdAt)}</div>
+                      </td>
+                      <td>
+                        {report.pdfPath ? (
+                          <span className="status-badge-modern status-success">
+                            <span className="status-icon">✅</span>
+                            Available
+                          </span>
+                        ) : (
+                          <span className="status-badge-modern status-danger">
+                            <span className="status-icon">❌</span>
+                            Missing
+                          </span>
+                        )}
+                      </td>
+                      <td>
+                        <div className="file-size">{report.pdfSize ? `${report.pdfSize} KB` : 'N/A'}</div>
+                      </td>
+                      <td>
+                        <div className="action-buttons">
+                          {report.pdfPath ? (
+                            <button
+                              className="btn-small btn-primary-small"
+                              onClick={() => downloadPDF(report._id)}
+                            >
+                              <span className="btn-icon-small">📥</span>
+                              Download
+                            </button>
+                          ) : (
+                            <button
+                              className="btn-small btn-secondary-small"
+                              disabled
+                            >
+                              <span className="btn-icon-small">🔄</span>
+                              Generate
+                            </button>
+                          )}
+                          <button
+                            className="btn-small btn-danger-small"
+                            onClick={() => deleteReport(report._id)}
+                          >
+                            <span className="btn-icon-small">🗑️</span>
+                            Delete
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 };
