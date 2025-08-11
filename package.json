@@ -1,4 +1,14 @@
 {
+  "name": "constructrs-fullstack",
+  "version": "1.0.0",
+  "scripts": {
+    "build": "cd client && npm install --include=optional && npm run build",
+    "start": "cd server && npm start",
+    "install-deps": "cd server && npm install && cd ../client && npm install --include=optional"
+  },
+  "engines": {
+    "node": ">=18.17.0"
+  },
   "dependencies": {
     "bcryptjs": "^3.0.2",
     "fs": "^0.0.1-security",
