@@ -13,12 +13,15 @@ const router = express.Router();
 // POST /auth/register - Register a new user
 router.post("/register", async (req, res) => {
   try {
-    const { firstName, lastName, email, password, jobName, isAdmin } = req.body;
+    const { firstName, lastName, email, password, jobName, role, isAdmin } = req.body;
+    
+    // Support both 'role' and 'jobName' fields for compatibility
+    const userJobName = jobName || role;
     
     // Basic validation for required fields
-    if (!firstName || !lastName || !email || !password || !jobName) {
+    if (!firstName || !lastName || !email || !password || !userJobName) {
       return res.status(400).json({ 
-        error: "All fields are required: firstName, lastName, email, password, jobName" 
+        error: "All fields are required: firstName, lastName, email, password, role/jobName" 
       });
     }
     
@@ -27,7 +30,8 @@ router.post("/register", async (req, res) => {
       lastName,
       email,
       password,
-      jobName,
+      jobName: userJobName,
+      role: role || userJobName, // Set both fields for compatibility
       isAdmin: isAdmin || false // Default to false if not provided
     });
     
