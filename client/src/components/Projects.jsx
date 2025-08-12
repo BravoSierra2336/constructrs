@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext.jsx';
 import axios from 'axios';
 
 const Projects = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [projects, setProjects] = useState([]);
   const [filteredProjects, setFilteredProjects] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -101,6 +103,11 @@ const Projects = () => {
 
   const canManageProjects = () => {
     return ['admin', 'project_manager', 'supervisor'].includes(user?.role);
+  };
+
+  const handleViewReports = (project) => {
+    // Navigate to reports page with project filter
+    navigate(`/reports?project=${encodeURIComponent(project.name)}`);
   };
 
   if (loading) {
@@ -228,7 +235,11 @@ const Projects = () => {
               )}
               
               <div style={{ display: 'flex', gap: '10px', marginTop: 'auto' }}>
-                <button className="modern-btn modern-btn-primary" style={{ flex: 1 }}>
+                <button 
+                  className="modern-btn modern-btn-primary" 
+                  style={{ flex: 1 }}
+                  onClick={() => handleViewReports(project)}
+                >
                   <i className="fas fa-clipboard-list me-2"></i>
                   View Reports
                 </button>

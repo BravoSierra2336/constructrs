@@ -7,6 +7,8 @@ import Projects from './components/Projects.jsx';
 import Reports from './components/Reports.jsx';
 import AdminDashboard from './components/AdminDashboard.jsx';
 import CreateReport from './components/CreateReport.jsx';
+import EditReport from './components/EditReport.jsx';
+import Chat from './components/Chat.jsx';
 import { AuthProvider, useAuth } from './contexts/AuthContext.jsx';
 import './App.css';
 // Import page layout system
@@ -47,6 +49,11 @@ const AdminRoute = ({ children }) => {
 
 function AppContent() {
   const { isAuthenticated } = useAuth();
+  const [isChatOpen, setIsChatOpen] = useState(false);
+
+  const toggleChat = () => {
+    setIsChatOpen(!isChatOpen);
+  };
 
   return (
     <div className="App">
@@ -73,18 +80,26 @@ function AppContent() {
           } 
         />
         <Route 
-          path="/reports" 
-          element={
-            <ProtectedRoute>
-              <Reports />
-            </ProtectedRoute>
-          } 
-        />
-        <Route 
           path="/reports/create" 
           element={
             <ProtectedRoute>
               <CreateReport />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/reports/edit/:id" 
+          element={
+            <ProtectedRoute>
+              <EditReport />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/reports" 
+          element={
+            <ProtectedRoute>
+              <Reports />
             </ProtectedRoute>
           } 
         />
@@ -101,6 +116,22 @@ function AppContent() {
           element={<Navigate to="/login" replace />} 
         />
       </Routes>
+      
+      {/* Chat Component - only show when authenticated */}
+      {isAuthenticated && (
+        <>
+          <Chat isOpen={isChatOpen} onToggle={toggleChat} />
+          
+          {/* Chat Toggle Button */}
+          <button
+            className={`chat-toggle-btn ${isChatOpen ? 'active' : ''}`}
+            onClick={toggleChat}
+            aria-label="Toggle AI Chat"
+          >
+            <i className={isChatOpen ? 'fas fa-times' : 'fas fa-comments'}></i>
+          </button>
+        </>
+      )}
     </div>
   );
 }

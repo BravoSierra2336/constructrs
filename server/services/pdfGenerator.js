@@ -32,9 +32,39 @@ class PDFReportGenerator {
         // Create a new PDF document
         const doc = new PDFDocument({ margin: 50 });
         
-        // Generate filename with timestamp
-        const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-        const filename = `report-${reportData._id || 'new'}-${timestamp}.pdf`;
+        // Generate formatted filename: YYYY.MM.DD Jobname_ReportType_InspectorInitials
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const day = String(now.getDate()).padStart(2, '0');
+        const datePrefix = `${year}.${month}.${day}`;
+        
+        // Get job/project name (fallback to "Unknown")
+        const jobName = (reportData.jobname || projectData?.name || 'Unknown')
+          .replace(/[^a-zA-Z0-9\s]/g, '') // Remove special characters
+          .replace(/\s+/g, '_') // Replace spaces with underscores
+          .substring(0, 30); // Limit length
+        
+        // Get report type (fallback to "General")
+        const reportType = (reportData.inspectionType || 'General')
+          .replace(/[^a-zA-Z0-9]/g, '') // Remove special characters
+          .substring(0, 20); // Limit length
+        
+        // Get inspector initials (fallback to "XX")
+        let inspectorInitials = 'XX';
+        if (inspectorData?.firstName && inspectorData?.lastName) {
+          inspectorInitials = `${inspectorData.firstName.charAt(0)}${inspectorData.lastName.charAt(0)}`.toUpperCase();
+        } else if (reportData.author) {
+          // Try to extract initials from author name
+          const authorParts = reportData.author.split(' ');
+          if (authorParts.length >= 2) {
+            inspectorInitials = `${authorParts[0].charAt(0)}${authorParts[authorParts.length - 1].charAt(0)}`.toUpperCase();
+          } else if (authorParts.length === 1) {
+            inspectorInitials = `${authorParts[0].charAt(0)}${authorParts[0].charAt(1) || 'X'}`.toUpperCase();
+          }
+        }
+        
+        const filename = `${datePrefix}_${jobName}_${reportType}_${inspectorInitials}.pdf`;
         const filepath = path.join(this.reportsDir, filename);
         
         // Pipe the PDF to a file

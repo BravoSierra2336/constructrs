@@ -146,6 +146,62 @@ router.post("/", authenticateToken, async (req, res) => {
     }
 });
 
+// Save draft report (without PDF generation)
+router.post("/draft", authenticateToken, async (req, res) => {
+    try {
+        console.log('POST /reports/draft called by user:', req.user);
+        console.log('Draft data:', req.body);
+        
+        // Create the draft document
+        let draftDocument = {
+            title: req.body.title || 'Untitled Draft',
+            content: req.body.content || '',
+            author: req.body.author,
+            jobname: req.body.jobname || req.body.title || 'Untitled Draft',
+            jobid: req.body.jobid,
+            projectId: req.body.projectId,
+            inspectorId: req.body.inspectorId,
+            inspectionType: req.body.inspectionType || 'safety',
+            findings: req.body.findings || '',
+            recommendations: req.body.recommendations || '',
+            status: 'draft', // Always draft status
+            laborBreakdownTitle: req.body.laborBreakdownTitle || 'Labor Breakdown',
+            laborBreakdown: req.body.laborBreakdown || [],
+            equipmentBreakdownTitle: req.body.equipmentBreakdownTitle || 'Equipment Breakdown',
+            equipmentBreakdown: req.body.equipmentBreakdown || [],
+            isDraft: true, // Flag to identify drafts
+            createdAt: new Date(),
+            lastModified: new Date()
+        };
+
+        console.log('Draft document to insert:', draftDocument);
+
+        // Get database connection
+        const database = await getDatabase();
+        if (!database) {
+            return res.status(500).json({ error: "Database connection not available" });
+        }
+
+        let collection = database.collection("reports");
+        let result = await collection.insertOne(draftDocument);
+        
+        console.log('Draft save result:', result);
+        
+        res.status(201).json({
+            success: true,
+            message: "Draft saved successfully",
+            reportId: result.insertedId,
+            report: draftDocument
+        });
+    } catch (err) {
+        console.error("Error saving draft:", err);
+        res.status(500).json({ 
+            error: "Error saving draft",
+            details: err.message 
+        });
+    }
+});
+
 // This section will help you get a list of all reports.
 router.get("/", authenticateToken, async (req, res) => {
     try {
@@ -200,26 +256,143 @@ router.get("/:id", authenticateToken, async (req, res) => {
     }
 });
 
-// This section will help you update a report by id.
-router.patch("/:id", async (req, res) => {
+// Update a report by id (with authorization and PDF regeneration)
+router.put("/:id", authenticateToken, async (req, res) => {
     try {
-        const query = { _id: new ObjectId(req.params.id) };
-        const updates = {
-            $set: {
-                title: req.body.title,
-                content: req.body.content,
-                author: req.body.author,
-                jobname: req.body.jobname,
-                jobid: req.body.jobid,
-            },
+        console.log('PUT /reports/:id called by user:', req.user);
+        const reportId = req.params.id;
+        
+        const database = await getDatabase();
+        if (!database) {
+            return res.status(500).json({ error: "Database connection not available" });
+        }
+
+        let collection = database.collection("reports");
+        const query = { _id: new ObjectId(reportId) };
+        
+        // Get the existing report
+        const existingReport = await collection.findOne(query);
+        if (!existingReport) {
+            return res.status(404).json({ error: "Report not found" });
+        }
+
+        // Authorization check: Only the inspector who created the report OR project manager+ can edit
+        const isReportAuthor = existingReport.inspectorId && existingReport.inspectorId.toString() === req.user.id;
+        const isProjectManagerOrHigher = ['admin', 'project_manager'].includes(req.user.role);
+        
+        if (!isReportAuthor && !isProjectManagerOrHigher) {
+            return res.status(403).json({ 
+                error: "You can only edit reports you created, or you must be a Project Manager or higher" 
+            });
+        }
+
+        console.log(`User ${req.user.id} authorized to edit report ${reportId}`);
+
+        // Prepare updated document
+        let updatedDocument = {
+            title: req.body.title || existingReport.title,
+            content: req.body.content || existingReport.content,
+            author: req.body.author || existingReport.author,
+            jobname: req.body.jobname || existingReport.jobname,
+            jobid: req.body.jobid || existingReport.jobid,
+            projectId: req.body.projectId || existingReport.projectId,
+            inspectorId: req.body.inspectorId || existingReport.inspectorId,
+            inspectionType: req.body.inspectionType || existingReport.inspectionType,
+            findings: req.body.findings || existingReport.findings,
+            recommendations: req.body.recommendations || existingReport.recommendations,
+            status: req.body.status || existingReport.status,
+            laborBreakdownTitle: req.body.laborBreakdownTitle || existingReport.laborBreakdownTitle,
+            laborBreakdown: req.body.laborBreakdown || existingReport.laborBreakdown,
+            equipmentBreakdownTitle: req.body.equipmentBreakdownTitle || existingReport.equipmentBreakdownTitle,
+            equipmentBreakdown: req.body.equipmentBreakdown || existingReport.equipmentBreakdown,
+            lastModified: new Date(),
+            editedBy: req.user.id,
+            editedAt: new Date()
         };
 
-        let collection = await db.collection("reports");
-        let result = await collection.updateOne(query, updates);
-        res.send(result).status(200);
+        // Keep original creation data
+        updatedDocument.createdAt = existingReport.createdAt;
+        updatedDocument.isDraft = false; // Report is no longer a draft after editing
+
+        console.log('Updated document:', updatedDocument);
+
+        // Delete old PDF if it exists
+        let oldPdfDeleted = false;
+        if (existingReport.pdfPath && fs.existsSync(existingReport.pdfPath)) {
+            try {
+                fs.unlinkSync(existingReport.pdfPath);
+                oldPdfDeleted = true;
+                console.log(`Deleted old PDF: ${existingReport.pdfPath}`);
+            } catch (pdfError) {
+                console.warn(`Could not delete old PDF: ${existingReport.pdfPath}`, pdfError);
+            }
+        }
+
+        // Generate new PDF
+        const pdfGenerator = new PDFReportGenerator();
+        
+        // Get related data for PDF generation
+        let projectData = null;
+        let inspectorData = null;
+
+        if (updatedDocument.projectId) {
+            try {
+                const projectsCollection = database.collection("projects");
+                projectData = await projectsCollection.findOne({ _id: new ObjectId(updatedDocument.projectId) });
+            } catch (err) {
+                console.warn("Could not fetch project data for PDF:", err);
+            }
+        }
+
+        if (updatedDocument.inspectorId) {
+            try {
+                const usersCollection = database.collection("users");
+                inspectorData = await usersCollection.findOne({ _id: new ObjectId(updatedDocument.inspectorId) });
+                if (inspectorData) {
+                    // Remove sensitive information
+                    delete inspectorData.password;
+                    delete inspectorData.microsoftAccessToken;
+                    delete inspectorData.microsoftRefreshToken;
+                }
+            } catch (err) {
+                console.warn("Could not fetch inspector data for PDF:", err);
+            }
+        }
+
+        // Generate the new PDF
+        const pdfPath = await pdfGenerator.generateReportPDF(
+            { ...updatedDocument, _id: reportId },
+            projectData,
+            inspectorData
+        );
+        
+        console.log('New PDF generated at:', pdfPath);
+        updatedDocument.pdfPath = pdfPath;
+
+        // Update the document in database
+        const updateResult = await collection.updateOne(query, { $set: updatedDocument });
+        
+        if (updateResult.matchedCount === 0) {
+            return res.status(404).json({ error: "Report not found" });
+        }
+
+        console.log('Report update result:', updateResult);
+        
+        res.status(200).json({
+            success: true,
+            message: "Report updated successfully",
+            reportId: reportId,
+            pdfPath: pdfPath,
+            oldPdfDeleted: oldPdfDeleted,
+            editedBy: req.user.id,
+            editedAt: updatedDocument.editedAt
+        });
     } catch (err) {
-        console.error(err);
-        res.status(500).send("Error updating report");
+        console.error("Error updating report:", err);
+        res.status(500).json({ 
+            error: "Error updating report",
+            details: err.message 
+        });
     }
 });
 

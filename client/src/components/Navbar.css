@@ -479,8 +479,8 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  backdrop-filter: blur(4px);
+  background: rgba(0, 0, 0, 0.3);
+  /* Remove backdrop-filter to prevent blurring the navigation menu */
   z-index: 999;
   opacity: 0;
   animation: fadeIn 0.3s ease forwards;
@@ -568,12 +568,12 @@ body {
     left: 0;
     right: 0;
     background: linear-gradient(135deg, 
-      rgba(255, 255, 255, 0.95),
-      rgba(255, 255, 255, 0.9)
+      rgba(255, 255, 255, 0.98),
+      rgba(255, 255, 255, 0.95)
     );
     backdrop-filter: blur(20px);
     border-bottom: 1px solid rgba(255, 255, 255, 0.3);
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
     flex-direction: column;
     align-items: stretch;
     gap: 0;
@@ -582,7 +582,7 @@ body {
     opacity: 0;
     visibility: hidden;
     transition: all 0.3s ease;
-    z-index: 998;
+    z-index: 1001; /* Higher than overlay to ensure visibility */
   }
   
   .navbar-nav.active {
@@ -596,6 +596,18 @@ body {
     border-radius: 12px;
     margin-bottom: 8px;
     justify-content: flex-start;
+    background: rgba(255, 255, 255, 0.8);
+    color: #333;
+    font-weight: 500;
+    border: 1px solid rgba(255, 255, 255, 0.6);
+  }
+  
+  .nav-link:hover,
+  .nav-link.active {
+    background: rgba(255, 255, 255, 0.95);
+    color: #2563eb;
+    border-color: rgba(37, 99, 235, 0.3);
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.15);
   }
   
   .nav-text {

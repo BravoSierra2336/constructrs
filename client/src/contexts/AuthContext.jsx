@@ -1,5 +1,9 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import axios from 'axios';
+import api from '../utils/api';
+
+// Configure axios defaults for all requests
+axios.defaults.baseURL = 'http://localhost:5050';
 
 const AuthContext = createContext();
 
@@ -67,7 +71,7 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (email, password) => {
     try {
-      const response = await axios.post('/auth/login', { email, password });
+      const response = await api.post('/auth/login', { email, password });
       const { token, user: userData } = response.data;
       
       // Store token and user data
@@ -114,7 +118,7 @@ export const AuthProvider = ({ children }) => {
 
   const register = async (userData) => {
     try {
-      const response = await axios.post('/auth/register', userData);
+      const response = await api.post('/auth/register', userData);
       const { token, user: newUser } = response.data;
       
       // Store token and user data
@@ -151,11 +155,7 @@ export const AuthProvider = ({ children }) => {
       }
 
       console.log('Fetching profile photo with token:', token.substring(0, 20) + '...');
-      const response = await axios.get('http://localhost:5050/auth/profile/photo', {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const response = await api.get('/auth/profile/photo');
 
       console.log('Profile photo response:', response.data);
       return response.data.profilePhotoUrl;

@@ -7,6 +7,8 @@ import Projects from './components/Projects';
 import Reports from './components/Reports';
 import AdminDashboard from './components/AdminDashboard';
 import CreateReport from './components/CreateReport';
+import EditReport from './components/EditReport';
+import Chat from './components/Chat';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import './App.css';
 
@@ -43,6 +45,11 @@ const AdminRoute = ({ children }) => {
 
 function AppContent() {
   const { isAuthenticated } = useAuth();
+  const [isChatOpen, setIsChatOpen] = useState(false);
+
+  const toggleChat = () => {
+    setIsChatOpen(!isChatOpen);
+  };
 
   return (
     <div className="App">
@@ -69,18 +76,26 @@ function AppContent() {
           } 
         />
         <Route 
-          path="/reports" 
-          element={
-            <ProtectedRoute>
-              <Reports />
-            </ProtectedRoute>
-          } 
-        />
-        <Route 
           path="/reports/create" 
           element={
             <ProtectedRoute>
               <CreateReport />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/reports/edit/:id" 
+          element={
+            <ProtectedRoute>
+              <EditReport />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/reports" 
+          element={
+            <ProtectedRoute>
+              <Reports />
             </ProtectedRoute>
           } 
         />
@@ -97,6 +112,11 @@ function AppContent() {
           element={<Navigate to={isAuthenticated ? "/dashboard" : "/login"} replace />} 
         />
       </Routes>
+      
+      {/* Global Chat Component - Only show when authenticated */}
+      {isAuthenticated && (
+        <Chat isOpen={isChatOpen} onToggle={toggleChat} />
+      )}
     </div>
   );
 }

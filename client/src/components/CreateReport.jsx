@@ -14,7 +14,15 @@ const CreateReport = () => {
     inspectionType: 'safety',
     findings: '',
     recommendations: '',
-    status: 'draft'
+    status: 'draft',
+    laborBreakdownTitle: 'Labor Breakdown',
+    laborBreakdown: [
+      { position: '', quantity: '', hours: '' }
+    ],
+    equipmentBreakdownTitle: 'Equipment Breakdown',
+    equipmentBreakdown: [
+      { equipment: '', quantity: '', hours: '' }
+    ]
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -41,6 +49,58 @@ const CreateReport = () => {
     });
   };
 
+  const handleLaborChange = (index, field, value) => {
+    const updatedLaborBreakdown = [...formData.laborBreakdown];
+    updatedLaborBreakdown[index][field] = value;
+    setFormData({
+      ...formData,
+      laborBreakdown: updatedLaborBreakdown
+    });
+  };
+
+  const addLaborRow = () => {
+    setFormData(prev => ({
+      ...prev,
+      laborBreakdown: [...prev.laborBreakdown, { position: '', quantity: '', hours: '' }]
+    }));
+  };
+
+  const removeLaborRow = (index) => {
+    if (formData.laborBreakdown.length > 1) {
+      const newLaborBreakdown = formData.laborBreakdown.filter((_, i) => i !== index);
+      setFormData(prev => ({
+        ...prev,
+        laborBreakdown: newLaborBreakdown
+      }));
+    }
+  };
+
+  const handleEquipmentChange = (index, field, value) => {
+    const updatedEquipmentBreakdown = [...formData.equipmentBreakdown];
+    updatedEquipmentBreakdown[index][field] = value;
+    setFormData({
+      ...formData,
+      equipmentBreakdown: updatedEquipmentBreakdown
+    });
+  };
+
+  const addEquipmentRow = () => {
+    setFormData(prev => ({
+      ...prev,
+      equipmentBreakdown: [...prev.equipmentBreakdown, { equipment: '', quantity: '', hours: '' }]
+    }));
+  };
+
+  const removeEquipmentRow = (index) => {
+    if (formData.equipmentBreakdown.length > 1) {
+      const newEquipmentBreakdown = formData.equipmentBreakdown.filter((_, i) => i !== index);
+      setFormData(prev => ({
+        ...prev,
+        equipmentBreakdown: newEquipmentBreakdown
+      }));
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -63,7 +123,11 @@ const CreateReport = () => {
         inspectionType: formData.inspectionType,
         findings: formData.findings,
         recommendations: formData.recommendations,
-        status: formData.status
+        status: formData.status,
+        laborBreakdownTitle: formData.laborBreakdownTitle,
+        laborBreakdown: formData.laborBreakdown,
+        equipmentBreakdownTitle: formData.equipmentBreakdownTitle,
+        equipmentBreakdown: formData.equipmentBreakdown
       };
 
       console.log('Sending report data:', reportData);
@@ -84,15 +148,56 @@ const CreateReport = () => {
     }
   };
 
+  const handleSaveDraft = async () => {
+    setLoading(true);
+    setError('');
+    setSuccess('');
+
+    try {
+      const draftData = {
+        title: formData.title || 'Untitled Draft',
+        content: formData.description,
+        author: `${user.firstName} ${user.lastName}`,
+        jobname: formData.title || 'Untitled Draft',
+        jobid: `DRAFT-${Date.now()}`,
+        projectId: formData.projectId,
+        inspectorId: user.id || user._id,
+        inspectionType: formData.inspectionType,
+        findings: formData.findings,
+        recommendations: formData.recommendations,
+        status: 'draft', // Always save as draft
+        laborBreakdownTitle: formData.laborBreakdownTitle,
+        laborBreakdown: formData.laborBreakdown,
+        equipmentBreakdownTitle: formData.equipmentBreakdownTitle,
+        equipmentBreakdown: formData.equipmentBreakdown,
+        isDraft: true // Flag to indicate this is a draft save
+      };
+
+      console.log('Saving draft:', draftData);
+      
+      const response = await axios.post('/reports/draft', draftData);
+      console.log('Draft save response:', response.data);
+      
+      if (response.data.success) {
+        setSuccess('Draft saved successfully! You can continue working on it later.');
+        // Optionally redirect to reports list after a delay
+        setTimeout(() => {
+          navigate('/reports');
+        }, 2000);
+      }
+    } catch (error) {
+      console.error('Error saving draft:', error);
+      setError(error.response?.data?.error || 'Failed to save draft');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const inspectionTypes = [
-    { value: 'safety', label: 'Safety Inspection' },
-    { value: 'quality', label: 'Quality Control' },
-    { value: 'progress', label: 'Progress Review' },
-    { value: 'structural', label: 'Structural Inspection' },
-    { value: 'electrical', label: 'Electrical Inspection' },
-    { value: 'plumbing', label: 'Plumbing Inspection' },
-    { value: 'environmental', label: 'Environmental Check' },
-    { value: 'final', label: 'Final Inspection' }
+    { value: 'mot', label: 'MOT Inspection' },
+    { value: 'dwr', label: 'DWR' },
+    { value: 'DUR', label: 'DUR' },
+ 
   ];
 
   return (
@@ -101,9 +206,9 @@ const CreateReport = () => {
       <div className="page-content fade-in-up">
         {/* Page Header */}
         <div className="page-header-section">
-          <h1 className="page-title">📝 Create Inspection Report</h1>
+          <h1 className="page-title">📝 Create Report</h1>
           <p className="page-description">
-            Submit a new construction inspection report with automatic PDF generation
+            Submit a new report with automatic PDF generation
           </p>
         </div>
 
@@ -160,6 +265,166 @@ const CreateReport = () => {
                   </option>
                 ))}
               </select>
+            </div>
+          </div>
+
+          {/* Labor Breakdown Section */}
+          <div className="modern-form-group" style={{ marginTop: '30px' }}>
+            <label className="modern-label">👷 Labor Breakdown</label>
+            
+            {/* Labor Breakdown Title Input */}
+            <div className="modern-form-group" style={{ marginBottom: '20px' }}>
+              <label className="modern-label">Section Title</label>
+              <input
+                type="text"
+                name="laborBreakdownTitle"
+                className="modern-input"
+                value={formData.laborBreakdownTitle}
+                onChange={handleInputChange}
+                placeholder="Enter title for this section (e.g., Labor Breakdown, Workforce Summary)"
+              />
+            </div>
+            
+            <div className="labor-breakdown-table">
+              <div className="table-header">
+                <div className="header-cell">Position</div>
+                <div className="header-cell">Quantity</div>
+                <div className="header-cell">Hours</div>
+                <div className="header-cell">Actions</div>
+              </div>
+
+              {formData.laborBreakdown.map((row, index) => (
+                <div key={index} className="table-row">
+                  <div className="table-cell">
+                    <input
+                      type="text"
+                      value={row.position}
+                      onChange={(e) => handleLaborChange(index, 'position', e.target.value)}
+                      className="modern-input"
+                      placeholder="e.g., Superintendent, Foreman"
+                    />
+                  </div>
+                  <div className="table-cell">
+                    <input
+                      type="number"
+                      value={row.quantity}
+                      onChange={(e) => handleLaborChange(index, 'quantity', e.target.value)}
+                      className="modern-input"
+                      placeholder="0"
+                      min="0"
+                    />
+                  </div>
+                  <div className="table-cell">
+                    <input
+                      type="number"
+                      value={row.hours}
+                      onChange={(e) => handleLaborChange(index, 'hours', e.target.value)}
+                      className="modern-input"
+                      placeholder="0"
+                      min="0"
+                      step="0.5"
+                    />
+                  </div>
+                  <div className="table-cell">
+                    <button
+                      type="button"
+                      onClick={() => removeLaborRow(index)}
+                      className="btn btn-danger btn-small"
+                      disabled={formData.laborBreakdown.length <= 1}
+                    >
+                      Remove
+                    </button>
+                  </div>
+                </div>
+              ))}
+
+              <button
+                type="button"
+                onClick={addLaborRow}
+                className="btn btn-secondary add-row-btn"
+              >
+                + Add Labor Row
+              </button>
+            </div>
+          </div>
+
+          {/* Equipment Breakdown Section */}
+          <div className="modern-form-group" style={{ marginTop: '30px' }}>
+            <label className="modern-label">🚜 Equipment Breakdown</label>
+            
+            {/* Equipment Breakdown Title Input */}
+            <div className="modern-form-group" style={{ marginBottom: '20px' }}>
+              <label className="modern-label">Section Title</label>
+              <input
+                type="text"
+                name="equipmentBreakdownTitle"
+                className="modern-input"
+                value={formData.equipmentBreakdownTitle}
+                onChange={handleInputChange}
+                placeholder="Enter title for this section (e.g., Equipment Breakdown, Machinery Hours)"
+              />
+            </div>
+            
+            <div className="labor-breakdown-table">
+              <div className="table-header">
+                <div className="header-cell">Equipment</div>
+                <div className="header-cell">Quantity</div>
+                <div className="header-cell">Hours</div>
+                <div className="header-cell">Actions</div>
+              </div>
+
+              {formData.equipmentBreakdown.map((row, index) => (
+                <div key={index} className="table-row">
+                  <div className="table-cell">
+                    <input
+                      type="text"
+                      value={row.equipment}
+                      onChange={(e) => handleEquipmentChange(index, 'equipment', e.target.value)}
+                      className="modern-input"
+                      placeholder="e.g., Excavator, Concrete Mixer"
+                    />
+                  </div>
+                  <div className="table-cell">
+                    <input
+                      type="number"
+                      value={row.quantity}
+                      onChange={(e) => handleEquipmentChange(index, 'quantity', e.target.value)}
+                      className="modern-input"
+                      placeholder="0"
+                      min="0"
+                    />
+                  </div>
+                  <div className="table-cell">
+                    <input
+                      type="number"
+                      value={row.hours}
+                      onChange={(e) => handleEquipmentChange(index, 'hours', e.target.value)}
+                      className="modern-input"
+                      placeholder="0"
+                      min="0"
+                      step="0.5"
+                    />
+                  </div>
+                  <div className="table-cell">
+                    <button
+                      type="button"
+                      onClick={() => removeEquipmentRow(index)}
+                      className="btn btn-danger btn-small"
+                      disabled={formData.equipmentBreakdown.length <= 1}
+                    >
+                      Remove
+                    </button>
+                  </div>
+                </div>
+              ))}
+
+              <button
+                type="button"
+                onClick={addEquipmentRow}
+                className="btn btn-secondary add-row-btn"
+              >
+                + Add Equipment Row
+              </button>
             </div>
           </div>
 
@@ -225,6 +490,20 @@ const CreateReport = () => {
               disabled={loading}
             >
               Cancel
+            </button>
+            <button
+              type="button"
+              onClick={handleSaveDraft}
+              className="btn btn-outline"
+              disabled={loading || !formData.title}
+              style={{
+                background: 'linear-gradient(135deg, #ffeaa7, #fdcb6e)',
+                color: '#2d3436',
+                border: 'none',
+                fontWeight: '600'
+              }}
+            >
+              {loading ? '⏳ Saving...' : '💾 Save Draft'}
             </button>
             <button
               type="submit"

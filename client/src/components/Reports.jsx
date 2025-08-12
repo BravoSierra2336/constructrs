@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext.jsx';
-import axios from 'axios';
+import api from '../utils/api';
 
 const Reports = () => {
   const { user } = useAuth();
+  const [searchParams] = useSearchParams();
   const [reports, setReports] = useState([]);
   const [filteredReports, setFilteredReports] = useState([]);
   const [projects, setProjects] = useState([]);
@@ -31,6 +32,14 @@ const Reports = () => {
     };
   }, []);
 
+  // Read project filter from URL parameters
+  useEffect(() => {
+    const projectParam = searchParams.get('project');
+    if (projectParam) {
+      setProjectFilter(projectParam);
+    }
+  }, [searchParams]);
+
   useEffect(() => {
     filterReports();
   }, [reports, searchTerm, projectFilter]);
@@ -41,8 +50,8 @@ const Reports = () => {
       
       // Fetch reports and projects in parallel
       const [reportsResponse, projectsResponse] = await Promise.all([
-        axios.get('/reports'),
-        axios.get('/projects')
+        api.get('/reports'),
+        api.get('/projects')
       ]);
       
       console.log('Reports response:', reportsResponse.data);
@@ -119,7 +128,7 @@ const Reports = () => {
     }
 
     try {
-      const response = await axios.delete(`/reports/${reportId}`);
+      const response = await api.delete(`/reports/${reportId}`);
       
       if (response.data.success) {
         // Remove the deleted report from the local state
@@ -165,6 +174,13 @@ const Reports = () => {
 
   const canCreateReports = () => {
     return ['admin', 'project_manager', 'supervisor', 'inspector'].includes(user?.role);
+  };
+
+  const canEditReport = (report) => {
+    // User can edit if they are the original inspector OR if they are project manager or higher
+    const isReportAuthor = report.inspectorId && report.inspectorId === user?.id;
+    const isProjectManagerOrHigher = ['admin', 'project_manager'].includes(user?.role);
+    return isReportAuthor || isProjectManagerOrHigher;
   };
 
   const isAdmin = () => {
@@ -308,6 +324,16 @@ const Reports = () => {
                         >
                           👁️ View Report
                         </button>
+                        {canEditReport(report) && (
+                          <Link
+                            to={`/reports/edit/${report._id}`}
+                            className="btn btn-primary"
+                            style={{ fontSize: '0.85rem', padding: '6px 12px' }}
+                            title="Edit this report"
+                          >
+                            ✏️ Edit
+                          </Link>
+                        )}
                         {isAdmin() && (
                           <button
                             className="btn btn-danger"

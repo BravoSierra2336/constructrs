@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Container, Row, Col, Card, Button, Alert, Spinner, Badge } from 'react-bootstrap';
 import { useAuth } from '../contexts/AuthContext.jsx';
-import axios from 'axios';
+import api from '../utils/api';
 
 const Dashboard = () => {
   const { user, loading: authLoading } = useAuth();
@@ -27,11 +27,11 @@ const Dashboard = () => {
       setError(''); // Clear any previous errors
       
       // Fetch projects
-      const projectsResponse = await axios.get('/projects');
+      const projectsResponse = await api.get('/projects');
       const projects = projectsResponse.data.projects || [];
       
       // Fetch reports
-      const reportsResponse = await axios.get('/reports');
+      const reportsResponse = await api.get('/reports');
       const reports = reportsResponse.data.reports || [];
       
       setStats({

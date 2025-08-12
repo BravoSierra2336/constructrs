@@ -646,3 +646,45 @@ body {
     padding: 1.5rem 1rem;
   }
 }
+
+/* Chat Toggle Button */
+.chat-toggle-btn {
+  position: fixed;
+  bottom: 30px;
+  right: 30px;
+  width: 60px;
+  height: 60px;
+  background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
+  border: none;
+  border-radius: 50%;
+  color: white;
+  font-size: 1.5rem;
+  cursor: pointer;
+  box-shadow: var(--shadow-lg);
+  transition: all 0.3s ease;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.chat-toggle-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-xl);
+  background: linear-gradient(135deg, var(--primary-hover), var(--accent-color));
+}
+
+.chat-toggle-btn.active {
+  background: linear-gradient(135deg, var(--danger-color), #f87171);
+}
+
+/* Mobile adjustments for chat toggle */
+@media (max-width: 768px) {
+  .chat-toggle-btn {
+    bottom: 20px;
+    right: 20px;
+    width: 50px;
+    height: 50px;
+    font-size: 1.25rem;
+  }
+}
