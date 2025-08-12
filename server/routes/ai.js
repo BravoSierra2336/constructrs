@@ -20,9 +20,13 @@ const router = express.Router();
 // General AI chat endpoint - requires authentication
 router.post('/chat', authenticateToken, async (req, res) => {
   try {
+    console.log('🤖 AI Chat endpoint called by user:', req.user?.email);
+    console.log('📝 Request body:', req.body);
+    
     const { message, context } = req.body;
 
     if (!message) {
+      console.log('❌ No message provided');
       return res.status(400).json({ error: 'Message is required' });
     }
 
@@ -34,9 +38,13 @@ router.post('/chat', authenticateToken, async (req, res) => {
       ...context
     };
 
+    console.log('🔄 Calling constructionAssistant with:', { message, userContext });
     const response = await constructionAssistant(message, userContext);
 
+    console.log('✅ AI Response received:', response);
+
     if (!response.success) {
+      console.log('❌ AI service error:', response.error);
       return res.status(500).json({ error: 'AI service error', details: response.error });
     }
 
@@ -46,8 +54,8 @@ router.post('/chat', authenticateToken, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('AI chat error:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    console.error('❌ AI chat error:', error);
+    res.status(500).json({ error: 'Internal server error', details: error.message });
   }
 });
 
