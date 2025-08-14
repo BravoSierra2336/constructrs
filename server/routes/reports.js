@@ -1,5 +1,6 @@
 import { createRequire } from 'module';
 import PDFReportGenerator from "../services/pdfGenerator.js";
+import EnhancedPDFReportGenerator from "../services/enhancedPdfGenerator.js";
 import { getDatabase } from "../db/connection.js";
 import User from "../models/user.js";
 import Project from "../models/project.js";
@@ -19,8 +20,9 @@ const jwt = require("jsonwebtoken");
 // The router will be added as a middleware and will take control of requests starting with path /record.
 const router = express.Router();
 
-// Initialize PDF generator
+// Initialize PDF generators
 const pdfGenerator = new PDFReportGenerator();
+const enhancedPdfGenerator = new EnhancedPDFReportGenerator();
 
 // Test endpoint to check database connection and report count
 router.get("/test-db", async (req, res) => {
@@ -102,9 +104,9 @@ router.post("/", authenticateToken, async (req, res) => {
             // Continue with PDF generation even if we can't fetch related data
         }
 
-        // Generate PDF report
+        // Generate PDF report using enhanced generator
         try {
-            const pdfPath = await pdfGenerator.generateReportPDF(
+            const pdfPath = await enhancedPdfGenerator.generateReportPDF(
                 newDocument,
                 projectData,
                 inspectorData
@@ -359,8 +361,8 @@ router.put("/:id", authenticateToken, async (req, res) => {
             }
         }
 
-        // Generate the new PDF
-        const pdfPath = await pdfGenerator.generateReportPDF(
+        // Generate the new PDF using enhanced generator
+        const pdfPath = await enhancedPdfGenerator.generateReportPDF(
             { ...updatedDocument, _id: reportId },
             projectData,
             inspectorData
@@ -561,9 +563,12 @@ router.get("/:id/pdf", authenticateTokenForDownload, async (req, res) => {
             return res.status(404).json({ error: "PDF file not found on server" });
         }
 
-        // Set headers for PDF download
+        // Extract the actual filename from the path for a proper download filename
+        const actualFilename = path.basename(report.pdfPath);
+        
+        // Set headers for PDF download with the actual filename
         res.setHeader('Content-Type', 'application/pdf');
-        res.setHeader('Content-Disposition', `attachment; filename="report-${req.params.id}.pdf"`);
+        res.setHeader('Content-Disposition', `attachment; filename="${actualFilename}"`);
         
         // Stream the PDF file
         const fileStream = fs.createReadStream(report.pdfPath);
@@ -609,8 +614,8 @@ router.post("/:id/regenerate-pdf", async (req, res) => {
             console.warn("Could not fetch related data for PDF regeneration:", fetchError.message);
         }
 
-        // Generate new PDF
-        const pdfPath = await pdfGenerator.generateReportPDF(
+        // Generate new PDF using enhanced generator
+        const pdfPath = await enhancedPdfGenerator.generateReportPDF(
             report,
             projectData,
             inspectorData

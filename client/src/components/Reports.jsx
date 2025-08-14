@@ -103,9 +103,15 @@ const Reports = () => {
         return;
       }
       
-      // Use the correct PDF download endpoint
-      const token = localStorage.getItem('authToken');
-      const downloadUrl = `/reports/${reportId}/pdf`;
+      // Use the correct PDF download endpoint with proper token detection
+      const token = localStorage.getItem('authToken') || localStorage.getItem('token');
+      if (!token) {
+        setError('Authentication required. Please log in again.');
+        return;
+      }
+      
+      const API_BASE_URL = import.meta.env.PROD ? 'https://constructrs.onrender.com' : 'http://localhost:5050';
+      const downloadUrl = `${API_BASE_URL}/reports/${reportId}/pdf`;
       
       // Add authorization header by opening in new window with token
       window.open(`${downloadUrl}?token=${token}`, '_blank');

@@ -225,9 +225,12 @@ router.get("/reports/:id/download", authenticateToken, requireRole(['admin', 'pr
             return res.status(404).json({ error: "PDF file not found" });
         }
 
-        // Set headers for PDF download
+        // Extract the actual filename from the path for a proper download filename
+        const actualFilename = path.basename(report.pdfPath);
+
+        // Set headers for PDF download with the actual filename
         res.setHeader('Content-Type', 'application/pdf');
-        res.setHeader('Content-Disposition', `attachment; filename="report-${req.params.id}.pdf"`);
+        res.setHeader('Content-Disposition', `attachment; filename="${actualFilename}"`);
         
         // Stream the PDF file
         const fileStream = fs.createReadStream(report.pdfPath);
