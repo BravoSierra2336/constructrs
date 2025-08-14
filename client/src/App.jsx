@@ -10,7 +10,6 @@ import AdminDashboard from './components/AdminDashboard.jsx';
 import CreateReport from './components/CreateReport.jsx';
 import EditReport from './components/EditReport.jsx';
 import Chat from './components/Chat.jsx';
-import EmergencyReset from './components/EmergencyReset.jsx';
 import { AuthProvider, useAuth } from './contexts/AuthContext.jsx';
 import './App.css';
 // Import page layout system
@@ -84,9 +83,6 @@ function AppContent() {
 
   return (
     <div className="App">
-      {/* Always show emergency reset button */}
-      <EmergencyReset />
-      
       {isAuthenticated && <Navbar />}
       <Routes>
         <Route 
