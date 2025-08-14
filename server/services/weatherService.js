@@ -1,16 +1,41 @@
 import axios from 'axios';
+import mockWeatherService from './mockWeatherService.js';
 
 class WeatherService {
   constructor() {
     // You'll need to get a free API key from https://openweathermap.org/api
     this.apiKey = process.env.OPENWEATHER_API_KEY || 'your_openweather_api_key_here';
     this.baseUrl = 'https://api.openweathermap.org/data/2.5';
+    this.useMockData = false;
     
     // Log API key status (without revealing the key)
-    if (this.apiKey === 'your_openweather_api_key_here') {
-      console.warn('⚠️  OpenWeatherMap API key not configured. Set OPENWEATHER_API_KEY environment variable.');
+    if (this.apiKey === 'your_openweather_api_key_here' || this.apiKey === 'disabled_invalid_key') {
+      console.warn('⚠️  OpenWeatherMap API key not configured or disabled. Using mock weather data.');
+      this.useMockData = true;
     } else {
       console.log('✅ OpenWeatherMap API key configured');
+    }
+  }
+
+  async testApiKey() {
+    if (this.useMockData) return false;
+    
+    try {
+      await axios.get(`${this.baseUrl}/weather`, {
+        params: {
+          q: 'London',
+          appid: this.apiKey,
+          units: 'imperial'
+        }
+      });
+      return true;
+    } catch (error) {
+      if (error.response?.status === 401) {
+        console.warn('⚠️  OpenWeatherMap API key is invalid. Switching to mock weather data.');
+        this.useMockData = true;
+        return false;
+      }
+      throw error;
     }
   }
 
@@ -169,82 +194,40 @@ class WeatherService {
       throw new Error('Location is required');
     }
 
-    // If no valid API key, return mock data for testing
-    if (this.apiKey === 'your_openweather_api_key_here') {
-      console.log('🧪 Using mock weather data (no API key configured)');
-      return this.getMockWeatherData(location);
+    // If we're using mock data or API key is invalid, use mock service
+    if (this.useMockData) {
+      console.log('🧪 Using mock weather data (API key invalid or not configured)');
+      return await mockWeatherService.getWeatherForLocation(location);
     }
 
-    // Check if location contains coordinates (lat,lon format)
-    const coordPattern = /^-?\d+\.?\d*,-?\d+\.?\d*$/;
-    if (coordPattern.test(location.trim())) {
-      const [lat, lon] = location.split(',').map(coord => parseFloat(coord.trim()));
-      const [currentWeather, forecast] = await Promise.all([
-        this.getCurrentWeather(lat, lon),
-        this.get24HourForecast(lat, lon)
-      ]);
-      
-      return {
-        coordinates: { lat, lon },
-        current: currentWeather,
-        forecast24h: forecast
-      };
-    } else {
-      // Treat as city name
-      return await this.getWeatherByCity(location);
-    }
-  }
-
-  /**
-   * Get mock weather data for testing when API key is not available
-   * @param {string} location - Location string
-   * @returns {Object} Mock weather data
-   */
-  getMockWeatherData(location) {
-    const mockForecast = [];
-    const baseTemp = 75; // Base temperature
-    
-    // Generate 8 periods (24 hours) of mock data
-    for (let i = 0; i < 8; i++) {
-      const time = new Date();
-      time.setHours(time.getHours() + (i * 3));
-      
-      mockForecast.push({
-        time: time,
-        temperature: baseTemp + Math.round((Math.random() - 0.5) * 10),
-        description: i % 2 === 0 ? 'clear sky' : 'few clouds',
-        humidity: 45 + Math.round(Math.random() * 30),
-        windSpeed: 5 + Math.round(Math.random() * 10),
-        precipitation: Math.random() > 0.7 ? Math.round(Math.random() * 5) : 0,
-        precipitationProbability: Math.round(Math.random() * 100),
-        icon: i % 2 === 0 ? '01d' : '02d'
-      });
-    }
-
-    const temperatures = mockForecast.map(f => f.temperature);
-    
-    return {
-      coordinates: { lat: 40.7128, lon: -74.0060 },
-      current: {
-        temperature: baseTemp,
-        description: 'clear sky',
-        humidity: 50,
-        windSpeed: 8,
-        location: location
-      },
-      forecast24h: {
-        location: location,
-        forecast: mockForecast,
-        summary: {
-          minTemp: Math.min(...temperatures),
-          maxTemp: Math.max(...temperatures),
-          avgTemp: Math.round(temperatures.reduce((a, b) => a + b, 0) / temperatures.length),
-          totalPrecipitation: mockForecast.reduce((sum, f) => sum + f.precipitation, 0),
-          maxPrecipitationProb: Math.max(...mockForecast.map(f => f.precipitationProbability)),
-          avgHumidity: Math.round(mockForecast.reduce((sum, f) => sum + f.humidity, 0) / mockForecast.length)
-        }
+    try {
+      // Check if location contains coordinates (lat,lon format)
+      const coordPattern = /^-?\d+\.?\d*,-?\d+\.?\d*$/;
+      if (coordPattern.test(location.trim())) {
+        const [lat, lon] = location.split(',').map(coord => parseFloat(coord.trim()));
+        const [currentWeather, forecast] = await Promise.all([
+          this.getCurrentWeather(lat, lon),
+          this.get24HourForecast(lat, lon)
+        ]);
+        
+        return {
+          coordinates: { lat, lon },
+          current: currentWeather,
+          forecast24h: forecast
+        };
+      } else {
+        // Treat as city name
+        return await this.getWeatherByCity(location);
       }
-    };
+    } catch (error) {
+      // If API call fails due to invalid key, switch to mock data
+      if (error.response?.status === 401) {
+        console.warn('⚠️  API key invalid, switching to mock weather data');
+        this.useMockData = true;
+        return await mockWeatherService.getWeatherForLocation(location);
+      }
+      throw error;
+    }
   }
 }
 
