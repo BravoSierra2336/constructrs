@@ -43,15 +43,37 @@ const CreateReport = () => {
 
   const fetchProjects = async () => {
     try {
-      const response = await axios.get('/projects', {
+      // Get API URL properly
+      const getApiUrl = () => {
+        if (typeof window !== 'undefined') {
+          const hostname = window.location.hostname;
+          if (hostname === 'localhost' || hostname === '127.0.0.1') {
+            return 'http://localhost:5050';
+          }
+        }
+        return window.location.origin.replace(':5173', ':5050').replace(':3000', ':5050');
+      };
+
+      const token = localStorage.getItem('token');
+      if (!token) {
+        setError('Authentication required. Please log in.');
+        return;
+      }
+
+      const response = await axios.get(`${getApiUrl()}/projects`, {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
         }
       });
       setProjects(response.data.projects || []);
     } catch (error) {
       console.error('Error fetching projects:', error);
-      setError('Failed to load projects');
+      if (error.response?.status === 401) {
+        setError('Authentication failed. Please log in again.');
+      } else {
+        setError('Failed to load projects');
+      }
     }
   };
 
@@ -78,10 +100,28 @@ const CreateReport = () => {
     setWeatherError('');
 
     try {
+      // Get API URL and token
+      const getApiUrl = () => {
+        if (typeof window !== 'undefined') {
+          const hostname = window.location.hostname;
+          if (hostname === 'localhost' || hostname === '127.0.0.1') {
+            return 'http://localhost:5050';
+          }
+        }
+        return window.location.origin.replace(':5173', ':5050').replace(':3000', ':5050');
+      };
+
+      const token = localStorage.getItem('token');
+      if (!token) {
+        setWeatherError('Authentication required. Please log in.');
+        return;
+      }
+
       const encodedLocation = encodeURIComponent(location.trim());
-      const response = await axios.get(`/weather/complete/${encodedLocation}`, {
+      const response = await axios.get(`${getApiUrl()}/weather/complete/${encodedLocation}`, {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
         }
       });
 
@@ -247,7 +287,29 @@ const CreateReport = () => {
 
       console.log('Sending report data:', reportData);
       
-      const response = await axios.post('/reports', reportData);
+      // Get API URL and token
+      const getApiUrl = () => {
+        if (typeof window !== 'undefined') {
+          const hostname = window.location.hostname;
+          if (hostname === 'localhost' || hostname === '127.0.0.1') {
+            return 'http://localhost:5050';
+          }
+        }
+        return window.location.origin.replace(':5173', ':5050').replace(':3000', ':5050');
+      };
+
+      const token = localStorage.getItem('token');
+      if (!token) {
+        setError('Authentication required. Please log in.');
+        return;
+      }
+
+      const response = await axios.post(`${getApiUrl()}/reports`, reportData, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
       console.log('Server response:', response.data);
       if (response.data.success) {
         setSuccess('Report created successfully! PDF is being generated...');
@@ -292,7 +354,29 @@ const CreateReport = () => {
 
       console.log('Saving draft:', draftData);
       
-      const response = await axios.post('/reports/draft', draftData);
+      // Get API URL and token
+      const getApiUrl = () => {
+        if (typeof window !== 'undefined') {
+          const hostname = window.location.hostname;
+          if (hostname === 'localhost' || hostname === '127.0.0.1') {
+            return 'http://localhost:5050';
+          }
+        }
+        return window.location.origin.replace(':5173', ':5050').replace(':3000', ':5050');
+      };
+
+      const token = localStorage.getItem('token');
+      if (!token) {
+        setError('Authentication required. Please log in.');
+        return;
+      }
+
+      const response = await axios.post(`${getApiUrl()}/reports/draft`, draftData, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
       console.log('Draft save response:', response.data);
       
       if (response.data.success) {

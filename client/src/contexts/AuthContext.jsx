@@ -287,17 +287,45 @@ export const AuthProvider = ({ children }) => {
 
   const fetchProfilePhoto = async () => {
     try {
+      console.log('🔍 fetchProfilePhoto called');
+      console.log('   Current user:', user);
+      
       const token = localStorage.getItem('token');
-      if (!token || !user) return null;
+      console.log('   Token from localStorage:', token ? 'EXISTS' : 'MISSING');
+      
+      if (!token) {
+        console.log('❌ No token found - user not authenticated');
+        return null;
+      }
+      
+      if (!user) {
+        console.log('❌ No user object - authentication not complete');
+        return null;
+      }
 
       const apiUrl = getApiUrl();
+      console.log('   Making request to:', `${apiUrl}/users/profile-photo`);
+      
       const response = await axios.get(`${apiUrl}/users/profile-photo`, {
         headers: { Authorization: `Bearer ${token}` }
       });
 
+      console.log('✅ Profile photo request successful:', response.data);
       return response.data.photoUrl;
     } catch (error) {
-      console.error('❌ Error fetching profile photo:', error);
+      console.error('❌ Error fetching profile photo:', {
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data,
+        message: error.message
+      });
+      
+      // If 401, user needs to re-authenticate
+      if (error.response?.status === 401) {
+        console.log('🔄 Token expired or invalid - logging out user');
+        logout();
+      }
+      
       return null;
     }
   };
