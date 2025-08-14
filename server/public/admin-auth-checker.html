@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Auth Checker</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .status {
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        .success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .warning { background-color: #fff3cd; color: #856404; border: 1px solid #ffeaa7; }
+        .info { background-color: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background-color: #0056b3; }
+        .token-display {
+            background: #f8f9fa;
+            padding: 10px;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            word-break: break-all;
+            font-family: monospace;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔐 Admin Authentication Checker</h1>
+        <p>This tool helps diagnose authentication issues with the admin panel.</p>
+        
+        <button onclick="checkTokens()">Check Authentication Status</button>
+        <button onclick="testAdminAccess()">Test Admin Access</button>
+        <button onclick="clearTokens()">Clear All Tokens</button>
+        
+        <div id="results"></div>
+    </div>
+
+    <script>
+        function getAuthToken() {
+            return localStorage.getItem('authToken') || localStorage.getItem('token');
+        }
+
+        function checkTokens() {
+            const results = document.getElementById('results');
+            results.innerHTML = '<h3>🔍 Token Status Check</h3>';
+            
+            // Check for various token storage keys
+            const authToken = localStorage.getItem('authToken');
+            const token = localStorage.getItem('token');
+            const sessionToken = sessionStorage.getItem('authToken');
+            const sessionTokenAlt = sessionStorage.getItem('token');
+            
+            let html = '';
+            
+            // Check localStorage authToken
+            if (authToken) {
+                html += `<div class="status success">✅ Found authToken in localStorage (${authToken.length} characters)</div>`;
+                html += `<div class="token-display">authToken: ${authToken.substring(0, 50)}${authToken.length > 50 ? '...' : ''}</div>`;
+            } else {
+                html += `<div class="status error">❌ No authToken found in localStorage</div>`;
+            }
+            
+            // Check localStorage token
+            if (token) {
+                html += `<div class="status success">✅ Found token in localStorage (${token.length} characters)</div>`;
+                html += `<div class="token-display">token: ${token.substring(0, 50)}${token.length > 50 ? '...' : ''}</div>`;
+            } else {
+                html += `<div class="status error">❌ No token found in localStorage</div>`;
+            }
+            
+            // Check sessionStorage
+            if (sessionToken) {
+                html += `<div class="status info">ℹ️ Found authToken in sessionStorage</div>`;
+            }
+            if (sessionTokenAlt) {
+                html += `<div class="status info">ℹ️ Found token in sessionStorage</div>`;
+            }
+            
+            // Overall status
+            const hasValidToken = authToken || token;
+            if (hasValidToken) {
+                html += `<div class="status success">🎉 Authentication token available for admin access</div>`;
+            } else {
+                html += `<div class="status error">⚠️ No authentication tokens found. You need to log in first.</div>`;
+                html += `<div class="status warning">💡 Please go to the main app and log in, then return to the admin panel.</div>`;
+            }
+            
+            results.innerHTML += html;
+        }
+
+        async function testAdminAccess() {
+            const results = document.getElementById('results');
+            results.innerHTML += '<h3>🧪 Testing Admin Access</h3>';
+            
+            const token = getAuthToken();
+            if (!token) {
+                results.innerHTML += '<div class="status error">❌ No token available for testing</div>';
+                return;
+            }
+            
+            try {
+                results.innerHTML += '<div class="status info">🔄 Testing admin access...</div>';
+                
+                const response = await fetch('/admin/check-access', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    results.innerHTML += '<div class="status success">✅ Admin access test successful!</div>';
+                    results.innerHTML += `<div class="status info">👤 User: ${data.user.firstName} ${data.user.lastName} (${data.user.email})</div>`;
+                    results.innerHTML += `<div class="status info">🎯 Role: ${data.user.role}</div>`;
+                    results.innerHTML += `<div class="status ${data.hasAdminAccess ? 'success' : 'error'}">${data.hasAdminAccess ? '✅' : '❌'} Admin Access: ${data.hasAdminAccess ? 'Granted' : 'Denied'}</div>`;
+                } else {
+                    results.innerHTML += `<div class="status error">❌ Admin access test failed: ${response.status} - ${data.error || 'Unknown error'}</div>`;
+                    
+                    if (response.status === 401) {
+                        results.innerHTML += '<div class="status warning">🔑 Token appears to be invalid or expired. Try logging in again.</div>';
+                    }
+                }
+            } catch (error) {
+                results.innerHTML += `<div class="status error">❌ Network error: ${error.message}</div>`;
+                results.innerHTML += '<div class="status warning">🌐 Make sure the server is running on port 5050</div>';
+            }
+        }
+
+        function clearTokens() {
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('token');
+            sessionStorage.removeItem('authToken');
+            sessionStorage.removeItem('token');
+            
+            const results = document.getElementById('results');
+            results.innerHTML += '<h3>🧹 Tokens Cleared</h3>';
+            results.innerHTML += '<div class="status success">✅ All authentication tokens have been cleared</div>';
+            results.innerHTML += '<div class="status info">💡 You will need to log in again to access admin features</div>';
+        }
+
+        // Auto-check on page load
+        window.onload = function() {
+            checkTokens();
+        };
+    </script>
+</body>
+</html>

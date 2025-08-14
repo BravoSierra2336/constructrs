@@ -418,12 +418,17 @@
             loadStats();
         });
 
+        // Enhanced token detection function
+        function getAuthToken() {
+            return localStorage.getItem('authToken') || localStorage.getItem('token');
+        }
+
         async function loadReports() {
             try {
                 document.getElementById('loading').style.display = 'block';
                 document.getElementById('reports-container').style.display = 'none';
                 
-                const token = localStorage.getItem('authToken');
+                const token = getAuthToken();
                 if (!token) {
                     showError('Please log in to access admin features');
                     return;
@@ -437,6 +442,13 @@
                 });
 
                 if (!response.ok) {
+                    if (response.status === 401) {
+                        showError('Authentication failed. Please log in again.');
+                        // Clear invalid tokens
+                        localStorage.removeItem('authToken');
+                        localStorage.removeItem('token');
+                        return;
+                    }
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
 
@@ -459,7 +471,7 @@
 
         async function loadStats() {
             try {
-                const token = localStorage.getItem('authToken');
+                const token = getAuthToken();
                 if (!token) return;
 
                 const response = await fetch('/admin/reports/stats', {
@@ -470,6 +482,10 @@
                 });
 
                 if (!response.ok) {
+                    if (response.status === 401) {
+                        console.warn('Authentication failed for stats');
+                        return;
+                    }
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
 
@@ -604,7 +620,11 @@
 
         async function downloadPDF(reportId) {
             try {
-                const token = localStorage.getItem('authToken');
+                const token = getAuthToken();
+                if (!token) {
+                    showError('Please log in to download reports');
+                    return;
+                }
                 window.open(`/admin/reports/${reportId}/download?token=${token}`, '_blank');
             } catch (error) {
                 showError('Error downloading PDF: ' + error.message);
@@ -613,7 +633,12 @@
 
         async function regeneratePDF(reportId) {
             try {
-                const token = localStorage.getItem('authToken');
+                const token = getAuthToken();
+                if (!token) {
+                    showError('Please log in to regenerate reports');
+                    return;
+                }
+                
                 const response = await fetch(`/reports/${reportId}/regenerate-pdf`, {
                     method: 'POST',
                     headers: {
@@ -623,6 +648,12 @@
                 });
 
                 if (!response.ok) {
+                    if (response.status === 401) {
+                        showError('Authentication failed. Please log in again.');
+                        localStorage.removeItem('authToken');
+                        localStorage.removeItem('token');
+                        return;
+                    }
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
 
@@ -640,7 +671,12 @@
             }
 
             try {
-                const token = localStorage.getItem('authToken');
+                const token = getAuthToken();
+                if (!token) {
+                    showError('Please log in to download reports');
+                    return;
+                }
+                
                 const response = await fetch('/admin/reports/bulk-download', {
                     method: 'POST',
                     headers: {
