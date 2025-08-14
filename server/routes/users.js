@@ -1,6 +1,8 @@
 import { createRequire } from 'module';
+import { ObjectId } from "mongodb";
 import User from "../models/user.js";
 import { authenticateToken, requireAdmin, requireAdminOrSelf } from "../middleware/auth.js";
+import { getDatabase } from "../db/connection.js";
 
 const require = createRequire(import.meta.url);
 const express = require("express");
@@ -138,6 +140,83 @@ router.patch("/:id", requireAdminOrSelf, async (req, res) => {
   } catch (error) {
     console.error("Error updating user:", error);
     res.status(400).json({ error: error.message });
+  }
+});
+
+// GET /users/profile-photo - Get current user's profile photo
+router.get("/profile-photo", authenticateToken, async (req, res) => {
+  try {
+    console.log('Profile photo request from user:', req.user.id);
+    const database = await getDatabase();
+    if (!database) {
+      return res.status(500).json({ error: "Database connection not available" });
+    }
+
+    const usersCollection = database.collection("users");
+    const user = await usersCollection.findOne({ _id: new ObjectId(req.user.id) });
+    
+    if (!user) {
+      console.log('User not found in database');
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    console.log('User found:', { 
+      id: user._id, 
+      authProvider: user.authProvider, 
+      hasAccessToken: !!user.microsoftAccessToken 
+    });
+
+    // If user has Microsoft access token, fetch their profile photo
+    if (user.authProvider === "microsoft" && user.microsoftAccessToken) {
+      try {
+        console.log('Attempting to fetch Microsoft profile photo...');
+        // First check if the token is still valid by making a test request
+        const testResponse = await fetch("https://graph.microsoft.com/v1.0/me", {
+          headers: {
+            Authorization: `Bearer ${user.microsoftAccessToken}`
+          }
+        });
+
+        if (!testResponse.ok) {
+          console.log('Microsoft token test failed:', testResponse.status, testResponse.statusText);
+          // Token might be expired, return null
+          return res.json({ photoUrl: null });
+        }
+
+        console.log('Microsoft token is valid, fetching photo...');
+        // Fetch the profile photo
+        const photoResponse = await fetch("https://graph.microsoft.com/v1.0/me/photo/$value", {
+          headers: {
+            Authorization: `Bearer ${user.microsoftAccessToken}`
+          }
+        });
+
+        if (photoResponse.ok) {
+          console.log('Profile photo fetched successfully');
+          // Get the photo as a blob and convert to base64
+          const photoBuffer = await photoResponse.arrayBuffer();
+          const base64Photo = Buffer.from(photoBuffer).toString('base64');
+          const contentType = photoResponse.headers.get('Content-Type') || 'image/jpeg';
+          
+          const photoUrl = `data:${contentType};base64,${base64Photo}`;
+          return res.json({ photoUrl });
+        } else {
+          console.log('No profile photo available or access denied:', photoResponse.status, photoResponse.statusText);
+          // No profile photo available or access denied
+          return res.json({ photoUrl: null });
+        }
+      } catch (error) {
+        console.error("Error fetching Microsoft profile photo:", error);
+        return res.json({ photoUrl: null });
+      }
+    } else {
+      console.log('User is not a Microsoft OAuth user or doesn\'t have a token');
+      // User is not a Microsoft OAuth user or doesn't have a token
+      return res.json({ photoUrl: null });
+    }
+  } catch (error) {
+    console.error("Error fetching profile photo:", error);
+    res.status(500).json({ error: error.message });
   }
 });
 

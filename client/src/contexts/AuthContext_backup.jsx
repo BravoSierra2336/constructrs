@@ -66,47 +66,27 @@ export const AuthProvider = ({ children }) => {
             email: normalizedUser.email,
             role: normalizedUser.role
           });
-
-          // Verify token with server before trusting local data
-          console.log('🔑 Verifying token with server...');
-          const apiUrl = getApiUrl();
-          const response = await axios.get(`${apiUrl}/auth/me`, {
-            headers: { Authorization: `Bearer ${token}` }
-          });
-
-          if (response.data.success && response.data.user) {
-            console.log('✅ Token verified, user is authenticated');
-            setUser(normalizedUser);
-            return;
-          } else {
-            throw new Error('Token verification failed');
-          }
-        } catch (error) {
-          console.error('❌ Error parsing user data or token verification failed:', error);
+          setUser(normalizedUser);
+          console.log('✅ User set from localStorage:', normalizedUser);
+          return;
+        } catch (parseError) {
+          console.error('❌ Error parsing user data:', parseError);
           localStorage.removeItem('userData');
           localStorage.removeItem('token');
         }
       }
 
-      // Check cookies as fallback
+      // Then check cookies as fallback
       const userDataCookie = document.cookie
         .split('; ')
         .find(row => row.startsWith('userData='));
       
-      const tokenCookie = document.cookie
-        .split('; ')
-        .find(row => row.startsWith('token='));
-      
-      console.log('🍪 Cookie check:', { 
-        hasUserDataCookie: !!userDataCookie,
-        hasTokenCookie: !!tokenCookie 
-      });
+      console.log('🍪 Cookie check:', { hasUserDataCookie: !!userDataCookie });
 
-      if (userDataCookie && tokenCookie) {
+      if (userDataCookie) {
         try {
           const cookieValue = decodeURIComponent(userDataCookie.split('=')[1]);
           const parsedUser = JSON.parse(cookieValue);
-          const cookieToken = tokenCookie.split('=')[1];
           
           // Handle both MongoDB _id and id formats
           const userId = parsedUser.id || parsedUser._id;
@@ -118,42 +98,78 @@ export const AuthProvider = ({ children }) => {
             throw new Error('Invalid user data structure');
           }
 
-          // Verify token with server
-          console.log('🔑 Verifying cookie token with server...');
-          const apiUrl = getApiUrl();
-          const response = await axios.get(`${apiUrl}/auth/me`, {
-            headers: { Authorization: `Bearer ${cookieToken}` }
+          // Normalize user object for consistency
+          const normalizedUser = {
+            ...parsedUser,
+            id: userId,
+            _id: userId,
+            email: userEmail 
+          };
+
+          console.log('✅ Valid user from cookie:', {
+            id: normalizedUser.id,
+            email: normalizedUser.email,
+            role: normalizedUser.role
           });
-
-          if (response.data.success && response.data.user) {
-            // Normalize user object for consistency
-            const normalizedUser = {
-              ...parsedUser,
-              id: userId,
-              _id: userId,
-              email: userEmail 
-            };
-
-            console.log('✅ Valid user from cookie:', {
-              id: normalizedUser.id,
-              email: normalizedUser.email,
-              role: normalizedUser.role
-            });
-            setUser(normalizedUser);
-            
-            // Store in localStorage for next time
-            localStorage.setItem('token', cookieToken);
-            localStorage.setItem('userData', JSON.stringify(normalizedUser));
-            console.log('✅ User set from cookie and stored in localStorage');
-            return;
-          } else {
-            throw new Error('Cookie token verification failed');
-          }
+          setUser(normalizedUser);
+          
+          // Store in localStorage for next time
+          localStorage.setItem('userData', JSON.stringify(normalizedUser));
+          console.log('✅ User set from cookie and stored in localStorage');
+          return;
         } catch (parseError) {
-          console.error('❌ Error parsing cookie user data or token verification failed:', parseError);
-          // Clear invalid cookies
-          document.cookie = 'userData=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-          document.cookie = 'token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+          console.error('❌ Error parsing cookie user data:', parseError);
+        }
+      }
+
+      // If no valid auth found, verify with server
+      console.log('🔍 No local auth found, checking with server...');
+      const apiUrl = getApiUrl();
+      const tokenCookie = document.cookie
+        .split('; ')
+        .find(row => row.startsWith('token='));
+
+      if (tokenCookie || token) {
+        const authToken = token || tokenCookie?.split('=')[1];
+        console.log('🔑 Found auth token, verifying with server...');
+        
+        const response = await axios.get(`${apiUrl}/auth/me`, {
+          headers: { Authorization: `Bearer ${authToken}` }
+        });
+
+        if (response.data.success && response.data.user) {
+          const serverUser = response.data.user;
+          
+          // Handle both MongoDB _id and id formats
+          const userId = serverUser.id || serverUser._id;
+          const userEmail = serverUser.email;
+          
+          // Validate user object structure
+          if (!userId || !userEmail) {
+            console.error('❌ Invalid user data structure from server:', serverUser);
+            throw new Error('Invalid user data structure');
+          }
+
+          // Normalize user object for consistency
+          const normalizedUser = {
+            ...serverUser,
+            id: userId,
+            _id: userId,
+            email: userEmail 
+          };
+
+          console.log('✅ Valid user from server:', {
+            id: normalizedUser.id,
+            email: normalizedUser.email,
+            role: normalizedUser.role
+          });
+          setUser(normalizedUser);
+          
+          // Store in localStorage
+          localStorage.setItem('token', authToken);
+          localStorage.setItem('userData', JSON.stringify(normalizedUser));
+          console.log('✅ User verified with server and stored locally');
+          return;
         }
       }
 
@@ -231,9 +247,8 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem('token');
     localStorage.removeItem('userData');
     
-    // Clear cookies (both old and new names to be safe)
+    // Clear cookies
     document.cookie = 'token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-    document.cookie = 'authToken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
     document.cookie = 'userData=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
     
     setUser(null);
@@ -302,24 +317,14 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const loginWithMicrosoft = () => {
-    console.log('🔐 Initiating Microsoft OAuth login...');
-    const apiUrl = getApiUrl();
-    const microsoftAuthUrl = `${apiUrl}/auth/microsoft`;
-    console.log('🌐 Redirecting to:', microsoftAuthUrl);
-    window.location.href = microsoftAuthUrl;
-  };
-
   const value = {
     user,
     loading,
-    isAuthenticated: !!user, // True if user exists, false otherwise
     login,
     logout,
     register,
     updateUser,
-    fetchProfilePhoto,
-    loginWithMicrosoft
+    fetchProfilePhoto
   };
 
   return (

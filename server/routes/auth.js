@@ -73,12 +73,19 @@ router.post("/login", async (req, res) => {
     // Generate JWT token
     const token = generateToken(user);
     
-    // Remove password from response
+    // Remove password from response and normalize user object
     const { password: _, ...userWithoutPassword } = user;
+    
+    // Normalize user object for frontend compatibility
+    const normalizedUser = {
+      ...userWithoutPassword,
+      id: userWithoutPassword._id || userWithoutPassword.id, // Ensure id field exists
+      _id: userWithoutPassword._id || userWithoutPassword.id // Ensure _id field exists
+    };
     
     res.status(200).json({
       message: "Login successful",
-      user: userWithoutPassword,
+      user: normalizedUser,
       token: token
     });
   } catch (error) {
@@ -278,30 +285,53 @@ router.get("/microsoft", passport.authenticate("microsoft", {
 
 // GET /auth/microsoft/callback - Handle Microsoft OAuth callback
 router.get("/microsoft/callback", 
-  passport.authenticate("microsoft", { failureRedirect: "/login?error=oauth_failed" }),
+  passport.authenticate("microsoft", { 
+    failureRedirect: process.env.NODE_ENV === 'production' 
+      ? "https://constructrs.onrender.com/login?error=oauth_failed"
+      : "http://localhost:5173/login?error=oauth_failed" 
+  }),
   async (req, res) => {
     try {
       // Generate JWT token for the authenticated user
       const token = generateToken(req.user);
       
-      // Remove sensitive fields from response
+      // Remove sensitive fields from response and normalize user object
       const { password, microsoftAccessToken, microsoftRefreshToken, ...userWithoutSecrets } = req.user;
       
-      // Set the JWT token as an HTTP-only cookie for security
-      res.cookie('authToken', token, {
-        httpOnly: true,
+      // Ensure the user object has both id and _id for frontend compatibility
+      const normalizedUser = {
+        ...userWithoutSecrets,
+        id: userWithoutSecrets._id || userWithoutSecrets.id, // Ensure id field exists
+        _id: userWithoutSecrets._id || userWithoutSecrets.id // Ensure _id field exists
+      };
+      
+      console.log('OAuth Callback - User object structure:', {
+        hasId: !!normalizedUser.id,
+        has_id: !!normalizedUser._id,
+        hasEmail: !!normalizedUser.email,
+        userKeys: Object.keys(normalizedUser)
+      });
+      
+      // Set the JWT token as a cookie accessible to JavaScript for auth checks
+      res.cookie('token', token, {
+        httpOnly: false, // Allow JavaScript access for auth checks
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'lax',
         maxAge: 24 * 60 * 60 * 1000 // 24 hours
       });
       
       // Set user data in a separate cookie for frontend access (without sensitive data)
-      res.cookie('userData', JSON.stringify(userWithoutSecrets), {
+      res.cookie('userData', JSON.stringify(normalizedUser), {
         httpOnly: false, // Allow frontend access
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'lax',
         maxAge: 24 * 60 * 60 * 1000 // 24 hours
       });
+      
+      // Determine frontend URL based on environment
+      const frontendUrl = process.env.NODE_ENV === 'production' 
+        ? 'https://constructrs.onrender.com'
+        : 'http://localhost:5173';
       
       // Create a temporary page that sets localStorage and redirects
       const redirectScript = `
@@ -316,12 +346,12 @@ router.get("/microsoft/callback",
             </div>
             <script>
               // Set localStorage for React app compatibility
-              localStorage.setItem('authToken', '${token}');
-              localStorage.setItem('userData', '${JSON.stringify(userWithoutSecrets).replace(/'/g, "\\'")}');
+              localStorage.setItem('token', '${token}');
+              localStorage.setItem('userData', '${JSON.stringify(normalizedUser).replace(/'/g, "\\'")}');
               
               // Redirect to dashboard after setting localStorage
               setTimeout(() => {
-                window.location.href = '/dashboard';
+                window.location.href = '${frontendUrl}/dashboard';
               }, 1000);
             </script>
           </body>
@@ -331,7 +361,10 @@ router.get("/microsoft/callback",
       res.send(redirectScript);
     } catch (error) {
       console.error("Error in Microsoft OAuth callback:", error);
-      res.redirect('/login?error=oauth_processing_failed');
+      const frontendUrl = process.env.NODE_ENV === 'production' 
+        ? 'https://constructrs.onrender.com'
+        : 'http://localhost:5173';
+      res.redirect(`${frontendUrl}/login?error=oauth_processing_failed`);
     }
   }
 );
@@ -386,12 +419,19 @@ router.post("/microsoft/token", async (req, res) => {
     // Generate JWT token
     const token = generateToken(user);
     
-    // Remove sensitive fields from response
+    // Remove sensitive fields from response and normalize user object
     const { password, microsoftAccessToken: _, microsoftRefreshToken, ...userWithoutSecrets } = user;
+    
+    // Normalize user object for frontend compatibility
+    const normalizedUser = {
+      ...userWithoutSecrets,
+      id: userWithoutSecrets._id || userWithoutSecrets.id, // Ensure id field exists
+      _id: userWithoutSecrets._id || userWithoutSecrets.id // Ensure _id field exists
+    };
     
     res.json({
       message: "Microsoft token exchange successful",
-      user: userWithoutSecrets,
+      user: normalizedUser,
       token: token
     });
   } catch (error) {
@@ -408,12 +448,19 @@ router.get("/me", authenticateToken, async (req, res) => {
       return res.status(404).json({ error: "User not found" });
     }
     
-    // Remove sensitive fields
+    // Remove sensitive fields and normalize user object
     const { password, microsoftAccessToken: _, microsoftRefreshToken, ...userWithoutSecrets } = user;
+    
+    // Normalize user object for frontend compatibility
+    const normalizedUser = {
+      ...userWithoutSecrets,
+      id: userWithoutSecrets._id || userWithoutSecrets.id, // Ensure id field exists
+      _id: userWithoutSecrets._id || userWithoutSecrets.id // Ensure _id field exists
+    };
     
     res.json({
       success: true,
-      user: userWithoutSecrets
+      user: normalizedUser
     });
   } catch (error) {
     console.error("Error fetching user profile:", error);

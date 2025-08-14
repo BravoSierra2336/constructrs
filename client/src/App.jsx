@@ -3,12 +3,14 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import Navbar from './components/Navbar.jsx';
 import Login from './components/Login.jsx';
 import Dashboard from './components/Dashboard.jsx';
-import Projects from './components/Projects.jsx';
+import Projects from './components/ProjectsClean.jsx';
+import ModalTest from './components/ModalTest.jsx';
 import Reports from './components/Reports.jsx';
 import AdminDashboard from './components/AdminDashboard.jsx';
 import CreateReport from './components/CreateReport.jsx';
 import EditReport from './components/EditReport.jsx';
 import Chat from './components/Chat.jsx';
+import EmergencyReset from './components/EmergencyReset.jsx';
 import { AuthProvider, useAuth } from './contexts/AuthContext.jsx';
 import './App.css';
 // Import page layout system
@@ -48,15 +50,43 @@ const AdminRoute = ({ children }) => {
 };
 
 function AppContent() {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, loading } = useAuth();
   const [isChatOpen, setIsChatOpen] = useState(false);
+  const [redirectCount, setRedirectCount] = useState(0);
+  
+  // Circuit breaker to prevent infinite redirects
+  useEffect(() => {
+    if (redirectCount > 5) {
+      console.error('Too many redirects detected - clearing localStorage and reloading');
+      localStorage.clear();
+      window.location.reload();
+    }
+  }, [redirectCount]);
 
   const toggleChat = () => {
     setIsChatOpen(!isChatOpen);
   };
 
+  // Show loading screen while checking authentication
+  if (loading) {
+    return (
+      <div style={{
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        height: '100vh',
+        fontSize: '18px'
+      }}>
+        Loading... (Auth check in progress)
+      </div>
+    );
+  }
+
   return (
     <div className="App">
+      {/* Always show emergency reset button */}
+      <EmergencyReset />
+      
       {isAuthenticated && <Navbar />}
       <Routes>
         <Route 

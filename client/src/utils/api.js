@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // Configure axios defaults
-const API_BASE_URL = import.meta.env.PROD ? 'http://localhost:5050' : 'http://localhost:5050';
+const API_BASE_URL = import.meta.env.PROD ? 'https://constructrs.onrender.com' : 'http://localhost:5050';
 
 // Create axios instance with default config
 const api = axios.create({
@@ -15,7 +15,7 @@ const api = axios.create({
 // Add request interceptor to include auth token
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('authToken');
+    const token = localStorage.getItem('token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -32,7 +32,7 @@ api.interceptors.response.use(
   (error) => {
     if (error.response?.status === 401) {
       // Token expired or invalid
-      localStorage.removeItem('authToken');
+      localStorage.removeItem('token');
       localStorage.removeItem('userData');
       delete axios.defaults.headers.common['Authorization'];
       window.location.href = '/login';
