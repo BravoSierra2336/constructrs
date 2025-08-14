@@ -43,7 +43,11 @@ const CreateReport = () => {
 
   const fetchProjects = async () => {
     try {
-      const response = await axios.get('/projects');
+      const response = await axios.get('/projects', {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
       setProjects(response.data.projects || []);
     } catch (error) {
       console.error('Error fetching projects:', error);
@@ -330,7 +334,12 @@ const CreateReport = () => {
 
         <div className="page-card">
           <form onSubmit={handleSubmit}>
-          {/* Basic Information */}
+          {/* Basic Information Section */}
+          <div style={{ marginBottom: '30px', padding: '20px', backgroundColor: '#f8f9fa', borderRadius: '8px', border: '1px solid #e0e0e0' }}>
+            <h3 style={{ fontSize: '18px', fontWeight: 'bold', color: '#2c3e50', marginBottom: '20px', borderBottom: '2px solid #3498db', paddingBottom: '10px' }}>
+              📋 Basic Information
+            </h3>
+            
           <div className="modern-form-group">
             <label className="modern-label required">Report Title</label>
             <input
@@ -398,12 +407,13 @@ const CreateReport = () => {
               </select>
             </div>
           </div>
+          </div>
 
           {/* Weather Information Section */}
           <div className="modern-form-group" style={{ marginTop: '30px', padding: '20px', backgroundColor: '#f8f9fa', borderRadius: '8px', border: '1px solid #e0e0e0' }}>
-            <label className="modern-label" style={{ fontSize: '18px', fontWeight: 'bold', color: '#2c3e50', marginBottom: '15px', display: 'block' }}>
+            <h3 style={{ fontSize: '18px', fontWeight: 'bold', color: '#2c3e50', marginBottom: '20px', borderBottom: '2px solid #3498db', paddingBottom: '10px' }}>
               🌤️ Weather Information (24-Hour Forecast)
-            </label>
+            </h3>
             
             <div className="modern-form-row">
               <div className="modern-form-group" style={{ flex: '2' }}>
@@ -518,8 +528,10 @@ const CreateReport = () => {
           </div>
 
           {/* Labor Breakdown Section */}
-          <div className="modern-form-group" style={{ marginTop: '30px' }}>
-            <label className="modern-label">👷 Labor Breakdown</label>
+          <div className="modern-form-group" style={{ marginTop: '30px', padding: '20px', backgroundColor: '#f8f9fa', borderRadius: '8px', border: '1px solid #e0e0e0' }}>
+            <h3 style={{ fontSize: '18px', fontWeight: 'bold', color: '#2c3e50', marginBottom: '20px', borderBottom: '2px solid #27ae60', paddingBottom: '10px' }}>
+              👷 Labor Breakdown
+            </h3>
             
             {/* Labor Breakdown Title Input */}
             <div className="modern-form-group" style={{ marginBottom: '20px' }}>
@@ -598,8 +610,10 @@ const CreateReport = () => {
           </div>
 
           {/* Equipment Breakdown Section */}
-          <div className="modern-form-group" style={{ marginTop: '30px' }}>
-            <label className="modern-label">🚜 Equipment Breakdown</label>
+          <div className="modern-form-group" style={{ marginTop: '30px', padding: '20px', backgroundColor: '#f8f9fa', borderRadius: '8px', border: '1px solid #e0e0e0' }}>
+            <h3 style={{ fontSize: '18px', fontWeight: 'bold', color: '#2c3e50', marginBottom: '20px', borderBottom: '2px solid #f39c12', paddingBottom: '10px' }}>
+              🚜 Equipment Breakdown
+            </h3>
             
             {/* Equipment Breakdown Title Input */}
             <div className="modern-form-group" style={{ marginBottom: '20px' }}>
@@ -689,7 +703,12 @@ const CreateReport = () => {
             />
           </div>
 
-          {/* Inspection Details */}
+          {/* Inspection Details Section */}
+          <div style={{ marginTop: '30px', padding: '20px', backgroundColor: '#f8f9fa', borderRadius: '8px', border: '1px solid #e0e0e0' }}>
+            <h3 style={{ fontSize: '18px', fontWeight: 'bold', color: '#2c3e50', marginBottom: '20px', borderBottom: '2px solid #e74c3c', paddingBottom: '10px' }}>
+              🔍 Inspection Details
+            </h3>
+            
           <div className="modern-form-group">
             <label className="modern-label required">Findings</label>
             <textarea
@@ -728,6 +747,7 @@ const CreateReport = () => {
               <option value="reviewed">Reviewed</option>
               <option value="approved">Approved</option>
             </select>
+          </div>
           </div>
 
           {/* Form Actions */}
