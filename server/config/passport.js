@@ -9,10 +9,19 @@ const { Strategy: MicrosoftStrategy } = require("passport-microsoft");
 const microsoftConfig = {
   clientID: process.env.MICROSOFT_CLIENT_ID || "your-microsoft-client-id",
   clientSecret: process.env.MICROSOFT_CLIENT_SECRET || "your-microsoft-client-secret",
-  callbackURL: process.env.MICROSOFT_CALLBACK_URL || "http://localhost:5050/auth/microsoft/callback",
+  callbackURL: process.env.NODE_ENV === 'production' 
+    ? "https://constructrs.onrender.com/auth/microsoft/callback"
+    : process.env.MICROSOFT_CALLBACK_URL || "http://localhost:5050/auth/microsoft/callback",
   scope: ["user.read", "user.readbasic.all"],
   tenant: "common" // Use "common" for multi-tenant, or your specific tenant ID
 };
+
+console.log('Microsoft OAuth Config:', {
+  environment: process.env.NODE_ENV,
+  callbackURL: microsoftConfig.callbackURL,
+  hasClientId: !!microsoftConfig.clientID,
+  hasClientSecret: !!microsoftConfig.clientSecret
+});
 
 // Configure Microsoft Strategy
 passport.use(
