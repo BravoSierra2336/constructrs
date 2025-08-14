@@ -36,13 +36,19 @@ export const chatCompletion = async (messages, options = {}) => {
 
     console.log('🤖 Making OpenAI API call with model:', options.model || 'gpt-3.5-turbo');
     
-    const response = await openai.chat.completions.create({
+    // Clean up options to ensure proper parameter names
+    const {maxTokens, ...cleanOptions} = options;
+    const apiParams = {
       model: options.model || 'gpt-3.5-turbo',
       messages: messages,
-      max_tokens: options.maxTokens || 150,
+      max_tokens: maxTokens || options.max_tokens || 150,
       temperature: options.temperature || 0.7,
-      ...options
-    });
+      ...cleanOptions
+    };
+    
+    console.log('🔧 API parameters:', Object.keys(apiParams));
+    
+    const response = await openai.chat.completions.create(apiParams);
 
     console.log('✅ OpenAI API call successful');
     return {

@@ -1,4 +1,5 @@
 import { createRequire } from 'module';
+import { ObjectId } from "mongodb";
 import User from "../models/user.js";
 
 const require = createRequire(import.meta.url);
@@ -28,7 +29,9 @@ export const authenticateToken = (req, res, next) => {
       console.log('❌ Token verification failed:', err.message);
       return res.status(403).json({ error: "Invalid or expired token" });
     }
+    
     console.log('✅ Token verified for user:', user.email);
+    console.log('🔍 User ID from token:', user.id);
     req.user = user;
     next();
   });
