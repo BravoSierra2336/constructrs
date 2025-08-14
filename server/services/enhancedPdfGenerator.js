@@ -257,71 +257,132 @@ class EnhancedPDFReportGenerator {
     });
     
     yPos += 20;
+
+    // Weather section if available
+    if (reportData.weather) {
+      yPos = this.addWeatherSection(doc, reportData.weather, yPos);
+      yPos += 20;
+    }
     
     // Content section
     if (reportData.content) {
+      // Check if we need a new page
+      if (yPos > 600) {
+        doc.addPage();
+        yPos = 60;
+      }
+
       doc.fontSize(14)
          .fillColor('#495057')
          .font('Helvetica-Bold')
          .text('REPORT CONTENT', 40, yPos);
       
-      yPos += 20;
+      yPos += 25;
       
-      // Content box
+      // Content box with border
+      doc.rect(40, yPos, 532, 2)
+         .fillAndStroke('#dee2e6', '#dee2e6');
+      
+      yPos += 10;
+      
       const content = reportData.content.trim();
       if (content) {
-        doc.fontSize(11)
-           .fillColor('#212529')
-           .font('Helvetica')
-           .text(content, 60, yPos, { 
-             width: 480, 
-             align: 'left',
-             lineGap: 4
-           });
+        const contentLines = this.wrapText(content, 480);
+        
+        contentLines.forEach((line, index) => {
+          if (yPos > 720) {
+            doc.addPage();
+            yPos = 60;
+          }
+          doc.fontSize(11)
+             .fillColor('#212529')
+             .font('Helvetica')
+             .text(line, 60, yPos);
+          yPos += 16;
+        });
       }
+      
+      yPos += 20;
     }
     
     // Findings section
     if (reportData.findings) {
-      yPos = doc.y + 20;
+      // Check if we need a new page
+      if (yPos > 600) {
+        doc.addPage();
+        yPos = 60;
+      }
       
       doc.fontSize(14)
          .fillColor('#495057')
          .font('Helvetica-Bold')
          .text('FINDINGS', 40, yPos);
       
-      yPos += 20;
+      yPos += 25;
       
-      doc.fontSize(11)
-         .fillColor('#212529')
-         .font('Helvetica')
-         .text(reportData.findings, 60, yPos, { 
-           width: 480, 
-           align: 'left',
-           lineGap: 4
-         });
+      // Findings box with border
+      doc.rect(40, yPos, 532, 2)
+         .fillAndStroke('#dee2e6', '#dee2e6');
+      
+      yPos += 10;
+      
+      const findingsLines = this.wrapText(reportData.findings, 480);
+      
+      findingsLines.forEach((line, index) => {
+        if (yPos > 720) {
+          doc.addPage();
+          yPos = 60;
+        }
+        doc.fontSize(11)
+           .fillColor('#212529')
+           .font('Helvetica')
+           .text(line, 60, yPos);
+        yPos += 16;
+      });
+      
+      yPos += 20;
     }
     
     // Recommendations section
     if (reportData.recommendations) {
-      yPos = doc.y + 20;
+      // Check if we need a new page
+      if (yPos > 600) {
+        doc.addPage();
+        yPos = 60;
+      }
       
       doc.fontSize(14)
          .fillColor('#495057')
          .font('Helvetica-Bold')
          .text('RECOMMENDATIONS', 40, yPos);
       
-      yPos += 20;
+      yPos += 25;
       
-      doc.fontSize(11)
-         .fillColor('#212529')
-         .font('Helvetica')
-         .text(reportData.recommendations, 60, yPos, { 
-           width: 480, 
-           align: 'left',
-           lineGap: 4
-         });
+      // Recommendations box with border
+      doc.rect(40, yPos, 532, 2)
+         .fillAndStroke('#dee2e6', '#dee2e6');
+      
+      yPos += 10;
+      
+      const recommendationsLines = this.wrapText(reportData.recommendations, 480);
+      
+      recommendationsLines.forEach((line, index) => {
+        if (yPos > 720) {
+          doc.addPage();
+          yPos = 60;
+        }
+        doc.fontSize(11)
+           .fillColor('#212529')
+           .font('Helvetica')
+           .text(line, 60, yPos);
+        yPos += 16;
+      });
+      
+      yPos += 20;
     }
+
+    // Additional report fields section
+    this.addAdditionalReportFields(doc, reportData, yPos);
   }
 
   addCleanFooter(doc) {
@@ -343,6 +404,147 @@ class EnhancedPDFReportGenerator {
     
     // Page number
     doc.text('Page 1', 520, footerY + 10);
+  }
+
+  addWeatherSection(doc, weatherData, yPos) {
+    if (!weatherData) return yPos;
+    
+    // Weather section header
+    doc.fontSize(14)
+       .fillColor('#495057')
+       .font('Helvetica-Bold')
+       .text('WEATHER CONDITIONS', 40, yPos);
+    
+    yPos += 25;
+    
+    // Weather info in clean table format
+    const weatherInfo = [
+      ['Temperature:', weatherData.temperature ? `${weatherData.temperature}°F` : 'N/A'],
+      ['Conditions:', weatherData.description || 'N/A'],
+      ['Humidity:', weatherData.humidity ? `${weatherData.humidity}%` : 'N/A'],
+      ['Wind Speed:', weatherData.windSpeed ? `${weatherData.windSpeed} mph` : 'N/A'],
+      ['Wind Direction:', weatherData.windDirection || 'N/A'],
+      ['Pressure:', weatherData.pressure ? `${weatherData.pressure} inHg` : 'N/A']
+    ];
+    
+    weatherInfo.forEach(([label, value]) => {
+      doc.fontSize(11)
+         .fillColor('#495057')
+         .font('Helvetica-Bold')
+         .text(label, 60, yPos, { width: 120 })
+         .font('Helvetica')
+         .fillColor('#212529')
+         .text(value, 180, yPos, { width: 350 });
+      yPos += 18;
+    });
+    
+    return yPos + 20;
+  }
+
+  addAdditionalReportFields(doc, reportData, yPos) {
+    // Check if we need a new page
+    if (yPos > 600) {
+      doc.addPage();
+      yPos = 60;
+    }
+    
+    // Collect all additional fields that might exist in the report
+    const additionalFields = [];
+    
+    // Common report fields that might be present
+    const possibleFields = [
+      'photos', 'attachments', 'tags', 'priority', 'category',
+      'location', 'duration', 'equipmentUsed', 'materials',
+      'safetyNotes', 'quality', 'progress', 'issues', 'delays',
+      'nextSteps', 'signature', 'approved', 'reviewedBy',
+      'completionPercentage', 'weatherAffected', 'laborHours',
+      'costImpact', 'scheduleImpact', 'rework', 'defects'
+    ];
+    
+    possibleFields.forEach(field => {
+      if (reportData[field] && reportData[field] !== null && reportData[field] !== '') {
+        let value = reportData[field];
+        
+        // Format different data types appropriately
+        if (typeof value === 'object') {
+          if (Array.isArray(value)) {
+            value = value.length > 0 ? value.join(', ') : 'None';
+          } else {
+            value = JSON.stringify(value);
+          }
+        } else if (typeof value === 'boolean') {
+          value = value ? 'Yes' : 'No';
+        } else if (typeof value === 'number') {
+          value = value.toString();
+        }
+        
+        // Limit length for display
+        if (value.length > 100) {
+          value = value.substring(0, 100) + '...';
+        }
+        
+        additionalFields.push([this.formatFieldName(field), value]);
+      }
+    });
+    
+    if (additionalFields.length > 0) {
+      doc.fontSize(14)
+         .fillColor('#495057')
+         .font('Helvetica-Bold')
+         .text('ADDITIONAL INFORMATION', 40, yPos);
+      
+      yPos += 25;
+      
+      additionalFields.forEach(([label, value]) => {
+        // Check if we need a new page
+        if (yPos > 720) {
+          doc.addPage();
+          yPos = 60;
+        }
+        
+        doc.fontSize(11)
+           .fillColor('#495057')
+           .font('Helvetica-Bold')
+           .text(label, 60, yPos, { width: 120 })
+           .font('Helvetica')
+           .fillColor('#212529')
+           .text(value, 180, yPos, { width: 350 });
+        yPos += 18;
+      });
+    }
+  }
+
+  formatFieldName(fieldName) {
+    // Convert camelCase to Title Case with spaces
+    return fieldName
+      .replace(/([A-Z])/g, ' $1')
+      .replace(/^./, str => str.toUpperCase())
+      .trim() + ':';
+  }
+
+  wrapText(text, maxWidth) {
+    if (!text) return [];
+    
+    const words = text.split(' ');
+    const lines = [];
+    let currentLine = '';
+    
+    words.forEach(word => {
+      const testLine = currentLine + (currentLine ? ' ' : '') + word;
+      // Approximate character width - adjust as needed for PDFKit
+      if (testLine.length * 6 > maxWidth && currentLine) {
+        lines.push(currentLine);
+        currentLine = word;
+      } else {
+        currentLine = testLine;
+      }
+    });
+    
+    if (currentLine) {
+      lines.push(currentLine);
+    }
+    
+    return lines;
   }
 
   /**
