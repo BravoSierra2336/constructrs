@@ -152,10 +152,18 @@ class User {
       if (!database) {
         throw new Error("Database connection not available");
       }
+      
+      // Validate the ObjectId format before creating ObjectId
+      if (!ObjectId.isValid(id)) {
+        console.error('Invalid ObjectId format:', id);
+        return null; // Return null instead of throwing error
+      }
+      
       const collection = database.collection("users");
       const query = { _id: new ObjectId(id) };
       return await collection.findOne(query);
     } catch (error) {
+      console.error('Error in findById:', error.message);
       throw new Error(`Error finding user: ${error.message}`);
     }
   }

@@ -279,12 +279,30 @@ router.post("/change-password", authenticateToken, async (req, res) => {
 });
 
 // GET /auth/microsoft - Initiate Microsoft OAuth login
-router.get("/microsoft", passport.authenticate("microsoft", {
+router.get("/microsoft", (req, res, next) => {
+  console.log('🔵 Microsoft OAuth Initiation', {
+    environment: process.env.NODE_ENV,
+    userAgent: req.headers['user-agent'],
+    origin: req.headers.origin,
+    referer: req.headers.referer
+  });
+  next();
+}, passport.authenticate("microsoft", {
   scope: ["user.read"]
 }));
 
 // GET /auth/microsoft/callback - Handle Microsoft OAuth callback
 router.get("/microsoft/callback", 
+  (req, res, next) => {
+    console.log('🔵 Microsoft OAuth Callback Started', {
+      environment: process.env.NODE_ENV,
+      query: req.query,
+      hasCode: !!req.query.code,
+      hasError: !!req.query.error,
+      userAgent: req.headers['user-agent']
+    });
+    next();
+  },
   passport.authenticate("microsoft", { 
     failureRedirect: process.env.NODE_ENV === 'production' 
       ? "https://constructrs.onrender.com/login?error=oauth_failed"

@@ -37,7 +37,7 @@ export const authenticateToken = (req, res, next) => {
 // Generate JWT token
 export const generateToken = (user) => {
   const payload = {
-    id: user._id,
+    id: user._id ? user._id.toString() : user.id, // Ensure ID is a string
     email: user.email,
     firstName: user.firstName,
     lastName: user.lastName,
@@ -45,6 +45,7 @@ export const generateToken = (user) => {
     isAdmin: user.isAdmin
   };
   
+  console.log('Generating token with user ID:', payload.id);
   return jwt.sign(payload, JWT_SECRET, { expiresIn: "24h" });
 };
 

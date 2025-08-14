@@ -27,12 +27,15 @@ let openai = createOpenAIClient();
 export const chatCompletion = async (messages, options = {}) => {
   try {
     if (!openai) {
+      console.warn('OpenAI client not initialized');
       return {
         success: false,
         error: 'OpenAI service is not available. API key not configured.'
       };
     }
 
+    console.log('🤖 Making OpenAI API call with model:', options.model || 'gpt-3.5-turbo');
+    
     const response = await openai.chat.completions.create({
       model: options.model || 'gpt-3.5-turbo',
       messages: messages,
@@ -41,17 +44,41 @@ export const chatCompletion = async (messages, options = {}) => {
       ...options
     });
 
+    console.log('✅ OpenAI API call successful');
     return {
       success: true,
       data: response.choices[0].message.content,
       usage: response.usage
     };
   } catch (error) {
-    console.error('OpenAI API Error:', error);
-    return {
-      success: false,
-      error: error.message
-    };
+    console.error('❌ OpenAI API Error:', {
+      message: error.message,
+      status: error.status || 'Unknown',
+      type: error.type || 'Unknown'
+    });
+    
+    // Handle specific error types
+    if (error.status === 401) {
+      return {
+        success: false,
+        error: 'OpenAI API key is invalid or expired. Please check your API key.'
+      };
+    } else if (error.status === 429) {
+      return {
+        success: false,
+        error: 'OpenAI API rate limit exceeded. Please try again later.'
+      };
+    } else if (error.status === 402) {
+      return {
+        success: false,
+        error: 'OpenAI API quota exceeded. Please check your billing.'
+      };
+    } else {
+      return {
+        success: false,
+        error: `OpenAI API error: ${error.message}`
+      };
+    }
   }
 };
 
