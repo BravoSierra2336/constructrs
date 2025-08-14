@@ -51,6 +51,77 @@ router.get("/test-db", async (req, res) => {
     }
 });
 
+// New endpoint to regenerate PDFs with enhanced generator
+router.post("/regenerate-pdf/:id", authenticateToken, async (req, res) => {
+    try {
+        const database = await getDatabase();
+        if (!database) {
+            return res.status(500).json({ error: "Database connection not available" });
+        }
+
+        const collection = database.collection("reports");
+        const reportId = req.params.id;
+
+        // Validate ObjectId
+        if (!ObjectId.isValid(reportId)) {
+            return res.status(400).json({ error: "Invalid report ID" });
+        }
+
+        // Find the report
+        const report = await collection.findOne({ _id: new ObjectId(reportId) });
+        if (!report) {
+            return res.status(404).json({ error: "Report not found" });
+        }
+
+        console.log("Regenerating PDF for report:", reportId);
+        console.log("Report data:", JSON.stringify(report, null, 2));
+
+        // Fetch related data
+        let projectData = null;
+        let inspectorData = null;
+
+        try {
+            if (report.projectId) {
+                projectData = await Project.findById(report.projectId);
+            }
+            if (report.inspectorId) {
+                inspectorData = await User.findById(report.inspectorId);
+            }
+        } catch (fetchError) {
+            console.warn("Could not fetch related data for PDF regeneration:", fetchError.message);
+        }
+
+        // Generate new PDF with enhanced generator
+        const pdfPath = await enhancedPdfGenerator.generateReportPDF(
+            report,
+            projectData,
+            inspectorData
+        );
+
+        // Update the report with new PDF path
+        await collection.updateOne(
+            { _id: new ObjectId(reportId) },
+            { $set: { pdfPath: pdfPath, regeneratedAt: new Date() } }
+        );
+
+        console.log(`PDF regenerated successfully: ${pdfPath}`);
+
+        res.json({
+            success: true,
+            message: "PDF regenerated successfully with enhanced generator",
+            pdfPath: pdfPath,
+            reportId: reportId
+        });
+
+    } catch (error) {
+        console.error("PDF regeneration error:", error);
+        res.status(500).json({ 
+            error: "PDF regeneration failed",
+            details: error.message 
+        });
+    }
+});
+
 // This section will create a new report and generate a PDF.
 router.post("/", authenticateToken, async (req, res) => {
     try {
