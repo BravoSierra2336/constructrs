@@ -29,8 +29,8 @@ export const AuthProvider = ({ children }) => {
   const checkAuthStatus = async () => {
     console.log('🔍 Checking auth status...');
     try {
-      // First check localStorage
-      const token = localStorage.getItem('token');
+      // First check localStorage for both token keys
+      const token = localStorage.getItem('token') || localStorage.getItem('authToken');
       const userData = localStorage.getItem('userData');
       
       console.log('📦 localStorage check:', { 
@@ -85,6 +85,7 @@ export const AuthProvider = ({ children }) => {
           console.error('❌ Error parsing user data or token verification failed:', error);
           localStorage.removeItem('userData');
           localStorage.removeItem('token');
+          localStorage.removeItem('authToken');
         }
       }
 
@@ -141,8 +142,9 @@ export const AuthProvider = ({ children }) => {
             });
             setUser(normalizedUser);
             
-            // Store in localStorage for next time
+            // Store in localStorage for next time with both token keys
             localStorage.setItem('token', cookieToken);
+            localStorage.setItem('authToken', cookieToken); // For admin panel compatibility
             localStorage.setItem('userData', JSON.stringify(normalizedUser));
             console.log('✅ User set from cookie and stored in localStorage');
             return;
@@ -213,7 +215,9 @@ export const AuthProvider = ({ children }) => {
           role: normalizedUser.role
         });
 
+        // Store token under both keys for compatibility with admin panel
         localStorage.setItem('token', token);
+        localStorage.setItem('authToken', token); // For admin panel compatibility
         localStorage.setItem('userData', JSON.stringify(normalizedUser));
         setUser(normalizedUser);
         
@@ -228,7 +232,9 @@ export const AuthProvider = ({ children }) => {
 
   const logout = () => {
     console.log('🚪 Logging out...');
+    // Remove both token keys for compatibility
     localStorage.removeItem('token');
+    localStorage.removeItem('authToken');
     localStorage.removeItem('userData');
     
     // Clear cookies (both old and new names to be safe)

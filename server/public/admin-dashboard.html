@@ -43,6 +43,31 @@
             opacity: 0.9;
         }
 
+        .auth-status {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.2);
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .auth-status.authenticated {
+            background: rgba(76, 175, 80, 0.3);
+        }
+
+        .auth-status.unauthenticated {
+            background: rgba(244, 67, 54, 0.3);
+        }
+
+        .header {
+            position: relative;
+        }
+
         .stats-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
@@ -314,6 +339,10 @@
 <body>
     <div class="container">
         <div class="header">
+            <div id="auth-status" class="auth-status">
+                <span id="auth-indicator">🔐</span>
+                <span id="auth-text">Checking authentication...</span>
+            </div>
             <h1>🏗️ Admin Dashboard</h1>
             <p>Manage Construction Reports & PDFs - Project Administrator Access</p>
         </div>
@@ -414,13 +443,56 @@
 
         // Load reports on page load
         document.addEventListener('DOMContentLoaded', function() {
-            loadReports();
-            loadStats();
+            if (checkAuthentication()) {
+                loadReports();
+                loadStats();
+            }
         });
 
         // Enhanced token detection function
         function getAuthToken() {
             return localStorage.getItem('authToken') || localStorage.getItem('token');
+        }
+
+        // Check authentication status on page load
+        function checkAuthentication() {
+            const token = getAuthToken();
+            const authStatus = document.getElementById('auth-status');
+            const authIndicator = document.getElementById('auth-indicator');
+            const authText = document.getElementById('auth-text');
+            
+            if (!token) {
+                authStatus.className = 'auth-status unauthenticated';
+                authIndicator.textContent = '🔒';
+                authText.textContent = 'Not authenticated';
+                showError('Please log in to access the admin dashboard. Redirecting to login...');
+                setTimeout(() => {
+                    window.location.href = '/';
+                }, 3000);
+                return false;
+            } else {
+                authStatus.className = 'auth-status authenticated';
+                authIndicator.textContent = '✅';
+                authText.textContent = 'Authenticated';
+                return true;
+            }
+        }
+
+        // Handle authentication failure
+        function handleAuthFailure() {
+            const authStatus = document.getElementById('auth-status');
+            const authIndicator = document.getElementById('auth-indicator');
+            const authText = document.getElementById('auth-text');
+            
+            authStatus.className = 'auth-status unauthenticated';
+            authIndicator.textContent = '🔒';
+            authText.textContent = 'Authentication failed';
+            
+            // Clear invalid tokens
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('token');
+            
+            showError('Authentication failed. Please log in again.');
         }
 
         async function loadReports() {
@@ -443,10 +515,7 @@
 
                 if (!response.ok) {
                     if (response.status === 401) {
-                        showError('Authentication failed. Please log in again.');
-                        // Clear invalid tokens
-                        localStorage.removeItem('authToken');
-                        localStorage.removeItem('token');
+                        handleAuthFailure();
                         return;
                     }
                     throw new Error(`HTTP error! status: ${response.status}`);
@@ -483,7 +552,7 @@
 
                 if (!response.ok) {
                     if (response.status === 401) {
-                        console.warn('Authentication failed for stats');
+                        handleAuthFailure();
                         return;
                     }
                     throw new Error(`HTTP error! status: ${response.status}`);
@@ -649,9 +718,7 @@
 
                 if (!response.ok) {
                     if (response.status === 401) {
-                        showError('Authentication failed. Please log in again.');
-                        localStorage.removeItem('authToken');
-                        localStorage.removeItem('token');
+                        handleAuthFailure();
                         return;
                     }
                     throw new Error(`HTTP error! status: ${response.status}`);
@@ -687,6 +754,10 @@
                 });
 
                 if (!response.ok) {
+                    if (response.status === 401) {
+                        handleAuthFailure();
+                        return;
+                    }
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
 
@@ -719,7 +790,12 @@
             if (!reportToDelete) return;
 
             try {
-                const token = localStorage.getItem('authToken');
+                const token = getAuthToken();
+                if (!token) {
+                    showError('Please log in to delete reports');
+                    return;
+                }
+                
                 const response = await fetch(`/admin/reports/${reportToDelete}`, {
                     method: 'DELETE',
                     headers: {
@@ -729,6 +805,11 @@
                 });
 
                 if (!response.ok) {
+                    if (response.status === 401) {
+                        handleAuthFailure();
+                        closeDeleteModal();
+                        return;
+                    }
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
 

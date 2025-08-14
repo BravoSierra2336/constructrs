@@ -4,7 +4,7 @@ import EnhancedPDFReportGenerator from "../services/enhancedPdfGenerator.js";
 import { getDatabase } from "../db/connection.js";
 import User from "../models/user.js";
 import Project from "../models/project.js";
-import { authenticateToken } from "../middleware/auth.js";
+import { authenticateToken, requireRole } from "../middleware/auth.js";
 import fs from "fs";
 import path from "path";
 
@@ -569,7 +569,7 @@ router.get("/job/:jobid", async (req, res) => {
 });
 
 // This section will help you delete a report by job ID.
-router.delete("/job/:jobid", async (req, res) => {
+router.delete("/job/:jobid", authenticateToken, requireRole(['admin']), async (req, res) => {
     try {
         const query = { jobid: req.params.jobid };
         let collection = await db.collection("reports");
@@ -655,7 +655,7 @@ router.get("/:id/pdf", authenticateTokenForDownload, async (req, res) => {
 });
 
 // Route to regenerate PDF for an existing report
-router.post("/:id/regenerate-pdf", async (req, res) => {
+router.post("/:id/regenerate-pdf", authenticateToken, async (req, res) => {
     try {
         const database = await getDatabase();
         if (!database) {
