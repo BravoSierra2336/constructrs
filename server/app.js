@@ -6,6 +6,7 @@ import auth from "./routes/auth.js";
 import ai from "./routes/ai.js";
 import projects from "./routes/projects.js";
 import admin from "./routes/admin.js";
+import weather from "./routes/weather.js";
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { getDatabase } from './db/connection.js';
@@ -64,6 +65,7 @@ app.use("/auth", auth);
 app.use("/ai", ai);
 app.use("/projects", projects);
 app.use("/admin", admin);
+app.use("/weather", weather);
 
 // Serve React app for non-API routes (must be after API routes)
 app.get("*", (req, res) => {

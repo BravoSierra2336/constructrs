@@ -11,6 +11,7 @@ const CreateReport = () => {
     title: '',
     description: '',
     projectId: '',
+    contractDay: '',
     inspectionType: 'safety',
     findings: '',
     recommendations: '',
@@ -22,8 +23,16 @@ const CreateReport = () => {
     equipmentBreakdownTitle: 'Equipment Breakdown',
     equipmentBreakdown: [
       { equipment: '', quantity: '', hours: '' }
-    ]
+    ],
+    weather: {
+      current: null,
+      forecast24h: null,
+      location: '',
+      lastUpdated: null
+    }
   });
+  const [weatherLoading, setWeatherLoading] = useState(false);
+  const [weatherError, setWeatherError] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -42,11 +51,111 @@ const CreateReport = () => {
     }
   };
 
+  const calculateContractDay = (projectId) => {
+    const selectedProject = projects.find(project => project._id === projectId);
+    if (selectedProject && selectedProject.startDate) {
+      const startDate = new Date(selectedProject.startDate);
+      const currentDate = new Date();
+      const timeDiff = currentDate - startDate;
+      const dayDiff = Math.floor(timeDiff / (1000 * 60 * 60 * 24));
+      return Math.max(0, dayDiff); // Ensure non-negative value
+    }
+    return '';
+  };
+
+  // Weather functions
+  const fetchWeatherData = async (location) => {
+    if (!location || location.trim() === '') {
+      setWeatherError('Please provide a location for weather data');
+      return;
+    }
+
+    setWeatherLoading(true);
+    setWeatherError('');
+
+    try {
+      const encodedLocation = encodeURIComponent(location.trim());
+      const response = await axios.get(`/weather/complete/${encodedLocation}`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+
+      if (response.data.success) {
+        setFormData(prev => ({
+          ...prev,
+          weather: {
+            current: response.data.data.current,
+            forecast24h: response.data.data.forecast24h,
+            location: location,
+            lastUpdated: new Date().toISOString()
+          }
+        }));
+        setWeatherError('');
+      } else {
+        setWeatherError('Failed to fetch weather data');
+      }
+    } catch (error) {
+      console.error('Error fetching weather:', error);
+      setWeatherError(error.response?.data?.error || 'Failed to fetch weather data');
+    } finally {
+      setWeatherLoading(false);
+    }
+  };
+
+  const handleLocationChange = (e) => {
+    const location = e.target.value;
+    setFormData(prev => ({
+      ...prev,
+      weather: {
+        ...prev.weather,
+        location: location
+      }
+    }));
+  };
+
+  const handleFetchWeather = () => {
+    if (formData.weather.location) {
+      fetchWeatherData(formData.weather.location);
+    }
+  };
+
+  // Auto-fetch weather when project location is available
+  const autoFetchWeatherFromProject = (projectId) => {
+    const selectedProject = projects.find(project => project._id === projectId);
+    if (selectedProject && selectedProject.location) {
+      setFormData(prev => ({
+        ...prev,
+        weather: {
+          ...prev.weather,
+          location: selectedProject.location
+        }
+      }));
+      // Auto-fetch weather after setting location
+      setTimeout(() => {
+        fetchWeatherData(selectedProject.location);
+      }, 100);
+    }
+  };
+
   const handleInputChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value
-    });
+    const { name, value } = e.target;
+    
+    if (name === 'projectId') {
+      const contractDay = calculateContractDay(value);
+      setFormData({
+        ...formData,
+        [name]: value,
+        contractDay: contractDay
+      });
+      // Auto-fetch weather data for selected project
+      autoFetchWeatherFromProject(value);
+    } else {
+      setFormData({
+        ...formData,
+        [name]: value
+      });
+    }
   };
 
   const handleLaborChange = (index, field, value) => {
@@ -121,13 +230,15 @@ const CreateReport = () => {
         projectId: formData.projectId,
         inspectorId: user.id || user._id, // Try both id and _id
         inspectionType: formData.inspectionType,
+        contractDay: formData.contractDay,
         findings: formData.findings,
         recommendations: formData.recommendations,
         status: formData.status,
         laborBreakdownTitle: formData.laborBreakdownTitle,
         laborBreakdown: formData.laborBreakdown,
         equipmentBreakdownTitle: formData.equipmentBreakdownTitle,
-        equipmentBreakdown: formData.equipmentBreakdown
+        equipmentBreakdown: formData.equipmentBreakdown,
+        weather: formData.weather
       };
 
       console.log('Sending report data:', reportData);
@@ -163,6 +274,7 @@ const CreateReport = () => {
         projectId: formData.projectId,
         inspectorId: user.id || user._id,
         inspectionType: formData.inspectionType,
+        contractDay: formData.contractDay,
         findings: formData.findings,
         recommendations: formData.recommendations,
         status: 'draft', // Always save as draft
@@ -170,6 +282,7 @@ const CreateReport = () => {
         laborBreakdown: formData.laborBreakdown,
         equipmentBreakdownTitle: formData.equipmentBreakdownTitle,
         equipmentBreakdown: formData.equipmentBreakdown,
+        weather: formData.weather,
         isDraft: true // Flag to indicate this is a draft save
       };
 
@@ -251,6 +364,24 @@ const CreateReport = () => {
             </div>
 
             <div className="modern-form-group">
+              <label className="modern-label">Contract Day</label>
+              <input
+                type="number"
+                name="contractDay"
+                className="modern-input"
+                value={formData.contractDay}
+                readOnly
+                placeholder="Auto-calculated when project is selected"
+                style={{ backgroundColor: '#f5f5f5', cursor: 'not-allowed' }}
+              />
+              <small className="form-helper-text">
+                Days since project start date (auto-calculated)
+              </small>
+            </div>
+          </div>
+
+          <div className="modern-form-row">
+            <div className="modern-form-group">
               <label className="modern-label required">Inspection Type</label>
               <select
                 name="inspectionType"
@@ -266,6 +397,124 @@ const CreateReport = () => {
                 ))}
               </select>
             </div>
+          </div>
+
+          {/* Weather Information Section */}
+          <div className="modern-form-group" style={{ marginTop: '30px', padding: '20px', backgroundColor: '#f8f9fa', borderRadius: '8px', border: '1px solid #e0e0e0' }}>
+            <label className="modern-label" style={{ fontSize: '18px', fontWeight: 'bold', color: '#2c3e50', marginBottom: '15px', display: 'block' }}>
+              🌤️ Weather Information (24-Hour Forecast)
+            </label>
+            
+            <div className="modern-form-row">
+              <div className="modern-form-group" style={{ flex: '2' }}>
+                <label className="modern-label">Location</label>
+                <input
+                  type="text"
+                  name="weatherLocation"
+                  className="modern-input"
+                  value={formData.weather.location}
+                  onChange={handleLocationChange}
+                  placeholder="Enter city name or coordinates (e.g., 'New York, NY' or '40.7128,-74.0060')"
+                />
+                <small className="form-helper-text">
+                  Location for weather forecast (auto-populated from project location)
+                </small>
+              </div>
+              
+              <div className="modern-form-group">
+                <label className="modern-label" style={{ visibility: 'hidden' }}>Action</label>
+                <button
+                  type="button"
+                  onClick={handleFetchWeather}
+                  disabled={weatherLoading || !formData.weather.location}
+                  className="modern-button"
+                  style={{
+                    backgroundColor: weatherLoading ? '#95a5a6' : '#3498db',
+                    color: 'white',
+                    padding: '10px 20px',
+                    borderRadius: '4px',
+                    border: 'none',
+                    cursor: weatherLoading ? 'not-allowed' : 'pointer',
+                    fontSize: '14px'
+                  }}
+                >
+                  {weatherLoading ? 'Loading...' : 'Get Weather'}
+                </button>
+              </div>
+            </div>
+
+            {weatherError && (
+              <div style={{ color: '#e74c3c', fontSize: '14px', marginTop: '10px', padding: '10px', backgroundColor: '#fdf2f2', border: '1px solid #fecaca', borderRadius: '4px' }}>
+                ⚠️ {weatherError}
+              </div>
+            )}
+
+            {formData.weather.current && (
+              <div style={{ marginTop: '20px' }}>
+                <h4 style={{ color: '#2c3e50', marginBottom: '15px' }}>Current Conditions</h4>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '15px' }}>
+                  <div style={{ padding: '15px', backgroundColor: 'white', borderRadius: '6px', border: '1px solid #ddd' }}>
+                    <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#e74c3c' }}>
+                      {formData.weather.current.temperature}°F
+                    </div>
+                    <div style={{ fontSize: '14px', color: '#7f8c8d', textTransform: 'capitalize' }}>
+                      {formData.weather.current.description}
+                    </div>
+                  </div>
+                  <div style={{ padding: '15px', backgroundColor: 'white', borderRadius: '6px', border: '1px solid #ddd' }}>
+                    <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#3498db' }}>
+                      {formData.weather.current.humidity}%
+                    </div>
+                    <div style={{ fontSize: '14px', color: '#7f8c8d' }}>Humidity</div>
+                  </div>
+                  <div style={{ padding: '15px', backgroundColor: 'white', borderRadius: '6px', border: '1px solid #ddd' }}>
+                    <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#27ae60' }}>
+                      {formData.weather.current.windSpeed} mph
+                    </div>
+                    <div style={{ fontSize: '14px', color: '#7f8c8d' }}>Wind Speed</div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {formData.weather.forecast24h && (
+              <div style={{ marginTop: '20px' }}>
+                <h4 style={{ color: '#2c3e50', marginBottom: '15px' }}>24-Hour Forecast Summary</h4>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '15px', marginBottom: '20px' }}>
+                  <div style={{ padding: '15px', backgroundColor: 'white', borderRadius: '6px', border: '1px solid #ddd', textAlign: 'center' }}>
+                    <div style={{ fontSize: '14px', color: '#7f8c8d', marginBottom: '5px' }}>Temperature Range</div>
+                    <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#e67e22' }}>
+                      {formData.weather.forecast24h.summary.minTemp}° - {formData.weather.forecast24h.summary.maxTemp}°F
+                    </div>
+                  </div>
+                  <div style={{ padding: '15px', backgroundColor: 'white', borderRadius: '6px', border: '1px solid #ddd', textAlign: 'center' }}>
+                    <div style={{ fontSize: '14px', color: '#7f8c8d', marginBottom: '5px' }}>Rain Probability</div>
+                    <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#3498db' }}>
+                      {Math.round(formData.weather.forecast24h.summary.maxPrecipitationProb)}%
+                    </div>
+                  </div>
+                  <div style={{ padding: '15px', backgroundColor: 'white', borderRadius: '6px', border: '1px solid #ddd', textAlign: 'center' }}>
+                    <div style={{ fontSize: '14px', color: '#7f8c8d', marginBottom: '5px' }}>Expected Rain</div>
+                    <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#9b59b6' }}>
+                      {formData.weather.forecast24h.summary.totalPrecipitation > 0 
+                        ? `${formData.weather.forecast24h.summary.totalPrecipitation.toFixed(2)} mm`
+                        : 'None'
+                      }
+                    </div>
+                  </div>
+                  <div style={{ padding: '15px', backgroundColor: 'white', borderRadius: '6px', border: '1px solid #ddd', textAlign: 'center' }}>
+                    <div style={{ fontSize: '14px', color: '#7f8c8d', marginBottom: '5px' }}>Avg Humidity</div>
+                    <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#16a085' }}>
+                      {formData.weather.forecast24h.summary.avgHumidity}%
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{ fontSize: '12px', color: '#7f8c8d', marginTop: '10px' }}>
+                  Last updated: {formData.weather.lastUpdated ? new Date(formData.weather.lastUpdated).toLocaleString() : 'Never'}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Labor Breakdown Section */}
