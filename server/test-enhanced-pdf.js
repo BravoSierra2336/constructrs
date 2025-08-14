@@ -1,4 +1,4 @@
-import PDFReportGenerator from './pdfGenerator.js';
+import PDFReportGenerator from './services/pdfGenerator.js';
 
 async function testEnhancedPDF() {
   console.log('🎨 Testing enhanced PDF generation...');
