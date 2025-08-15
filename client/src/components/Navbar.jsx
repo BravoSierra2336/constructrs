@@ -166,18 +166,7 @@ const Navbar = () => {
             <div className="dropdown-divider"></div>
             
             <div className="dropdown-actions">
-              <button className="dropdown-item profile-item">
-                <span className="item-icon">👤</span>
-                <span className="item-text">Profile Settings</span>
-              </button>
-              
-              <button className="dropdown-item preferences-item">
-                <span className="item-icon">⚙️</span>
-                <span className="item-text">Preferences</span>
-              </button>
-              
-              <div className="dropdown-divider"></div>
-              
+              {/* Only keep Logout in the dropdown actions */}
               <button className="dropdown-item logout-item" onClick={handleLogout}>
                 <span className="item-icon">🚪</span>
                 <span className="item-text">Logout</span>

@@ -18,6 +18,21 @@ router.post("/register", async (req, res) => {
     // Support both 'role' and 'jobName' fields for compatibility
     const userJobName = jobName || role;
     
+    // Disallow privileged roles through public registration
+    const forbiddenRoles = new Set([
+      'admin',
+      'administrator',
+      'project_manager',
+      'project administrator',
+      'project_administrator'
+    ]);
+    const requestedRole = (role || userJobName || '').toString().trim().toLowerCase();
+    if (forbiddenRoles.has(requestedRole)) {
+      return res.status(403).json({
+        error: "That role can't be self-assigned during registration. Please choose a different role."
+      });
+    }
+    
     // Basic validation for required fields
     if (!firstName || !lastName || !email || !password || !userJobName) {
       return res.status(400).json({ 
@@ -25,7 +40,7 @@ router.post("/register", async (req, res) => {
       });
     }
     
-    const newUser = await User.create({
+  const newUser = await User.create({
       firstName,
       lastName,
       email,

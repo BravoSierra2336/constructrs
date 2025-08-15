@@ -2,12 +2,14 @@ import { createRequire } from 'module';
 import fs from "fs";
 import path from "path";
 import { getDatabase } from "../db/connection.js";
+import User from "../models/user.js";
 import { ObjectId } from "mongodb";
 import { authenticateToken, requireRole } from "../middleware/auth.js";
 import { fileURLToPath } from 'url';
 
 const require = createRequire(import.meta.url);
 const express = require("express");
+const bcrypt = require("bcryptjs");
 
 const router = express.Router();
 
@@ -168,6 +170,220 @@ router.get("/reports", authenticateToken, requireRole(['admin', 'project_manager
             error: "Error fetching reports",
             details: err.message 
         });
+    }
+});
+
+/**
+ * USER MANAGEMENT (Admin only)
+ * Endpoints to list, create, update, and delete users
+ */
+
+// Helper: collections and utilities
+const getUsersCollection = async () => (await getDatabase()).collection('users');
+const getAuditCollection = async () => (await getDatabase()).collection('audit_logs');
+const logAudit = async ({ actorId, action, targetId, details = {}, req }) => {
+    try {
+        const col = await getAuditCollection();
+        await col.insertOne({
+            actorId: actorId ? new ObjectId(actorId) : null,
+            action, // e.g., 'user.create', 'user.update.role', 'user.delete'
+            targetId: targetId ? new ObjectId(targetId) : null,
+            details,
+            ip: req?.ip,
+            userAgent: req?.headers['user-agent'],
+            createdAt: new Date()
+        });
+    } catch (e) {
+        console.warn('Audit log failed:', e.message);
+    }
+};
+const countOtherAdmins = async (excludeId) => {
+    const col = await getUsersCollection();
+    const filter = excludeId ? { role: 'admin', _id: { $ne: new ObjectId(excludeId) } } : { role: 'admin' };
+    return col.countDocuments(filter);
+};
+
+// GET /admin/users - List users with search and pagination (Admin only)
+router.get("/users", authenticateToken, requireRole(['admin']), async (req, res) => {
+    try {
+        const q = (req.query.q || '').toString().trim();
+        const page = Math.max(parseInt(req.query.page || '1', 10), 1);
+        const pageSize = Math.min(Math.max(parseInt(req.query.pageSize || '25', 10), 1), 200);
+
+        const col = await getUsersCollection();
+        const filter = q
+            ? {
+                $or: [
+                    { firstName: { $regex: q, $options: 'i' } },
+                    { lastName: { $regex: q, $options: 'i' } },
+                    { email: { $regex: q, $options: 'i' } }
+                ]
+              }
+            : {};
+
+        const total = await col.countDocuments(filter);
+        const users = await col
+            .find(filter)
+            .sort({ createdAt: -1 })
+            .skip((page - 1) * pageSize)
+            .limit(pageSize)
+            .project({ password: 0, microsoftAccessToken: 0, microsoftRefreshToken: 0 })
+            .toArray();
+
+        res.json({ success: true, users, total, page, pageSize, totalPages: Math.ceil(total / pageSize) });
+    } catch (error) {
+        console.error("Error fetching users:", error);
+        res.status(500).json({ error: "Internal server error" });
+    }
+});
+
+// POST /admin/users - Create a new user (Admin only)
+router.post("/users", authenticateToken, requireRole(['admin']), async (req, res) => {
+    try {
+        const { firstName, lastName, email, password, role = 'employee', jobName } = req.body;
+        const newUser = await User.create({
+            firstName,
+            lastName,
+            email,
+            password,
+            role,
+            jobName: jobName || role,
+            isAdmin: role === 'admin'
+        });
+    // Audit
+    await logAudit({ actorId: req.user?.id, action: 'user.create', targetId: newUser._id, details: { role: newUser.role }, req });
+    res.status(201).json({ success: true, user: newUser });
+    } catch (error) {
+        console.error("Error creating user:", error);
+        res.status(400).json({ error: error.message });
+    }
+});
+
+// PUT /admin/users/:id - Update a user (Admin only)
+router.put("/users/:id", authenticateToken, requireRole(['admin']), async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { firstName, lastName, email, role, jobName, password } = req.body;
+
+        // Prevent removing own admin by downgrading? Allow but warn: not enforced here
+
+        // Fetch current user to check role changes
+        const current = await User.findById(id);
+        if (!current) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+
+        const updateData = {};
+        if (firstName !== undefined) updateData.firstName = firstName;
+        if (lastName !== undefined) updateData.lastName = lastName;
+        if (email !== undefined) updateData.email = email.toLowerCase();
+        if (role !== undefined) {
+            updateData.role = role;
+            updateData.isAdmin = role === 'admin';
+        }
+        if (jobName !== undefined) updateData.jobName = jobName;
+
+        // If password provided, hash before update
+        if (password && typeof password === 'string' && password.trim().length >= 6) {
+            const saltRounds = 10;
+            updateData.password = await bcrypt.hash(password, saltRounds);
+        }
+        // Last-admin protection: if changing an admin to non-admin and they are the last admin, block
+        if (current.role === 'admin' && role && role !== 'admin') {
+            const otherAdmins = await countOtherAdmins(id);
+            if (otherAdmins === 0) {
+                return res.status(400).json({ error: 'Cannot remove the last remaining admin' });
+            }
+        }
+
+        const updatedUser = await User.updateById(id, updateData);
+        if (!updatedUser) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+        // Audit: role change only
+        if (role && role !== current.role) {
+            await logAudit({ actorId: req.user?.id, action: 'user.update.role', targetId: id, details: { from: current.role, to: role }, req });
+        }
+        // Remove sensitive fields
+        const { password: _p, microsoftAccessToken, microsoftRefreshToken, ...safe } = updatedUser;
+        res.json({ success: true, user: safe });
+    } catch (error) {
+        console.error("Error updating user:", error);
+        res.status(400).json({ error: error.message });
+    }
+});
+
+// DELETE /admin/users/:id - Delete a user (Admin only)
+router.delete("/users/:id", authenticateToken, requireRole(['admin']), async (req, res) => {
+    try {
+        const { id } = req.params;
+        // Prevent deleting self
+        if (req.user && req.user.id && req.user.id.toString() === id.toString()) {
+            return res.status(400).json({ error: "You can't delete your own account" });
+        }
+        // Last-admin protection on delete
+        const target = await User.findById(id);
+        if (!target) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+        if (target.role === 'admin') {
+            const otherAdmins = await countOtherAdmins(id);
+            if (otherAdmins === 0) {
+                return res.status(400).json({ error: 'Cannot delete the last remaining admin' });
+            }
+        }
+
+        const result = await User.deleteById(id);
+        await logAudit({ actorId: req.user?.id, action: 'user.delete', targetId: id, details: { email: target.email, role: target.role }, req });
+        res.json({ success: true, ...result });
+    } catch (error) {
+        console.error("Error deleting user:", error);
+        res.status(400).json({ error: error.message });
+    }
+});
+
+// GET /admin/audit-logs - List recent audit logs (Admin only)
+router.get('/audit-logs', authenticateToken, requireRole(['admin']), async (req, res) => {
+    try {
+        const page = Math.max(parseInt(req.query.page || '1', 10), 1);
+        const pageSize = Math.min(Math.max(parseInt(req.query.pageSize || '50', 10), 1), 200);
+        const col = await getAuditCollection();
+        const total = await col.countDocuments({});
+        const logs = await col.find({})
+            .sort({ createdAt: -1 })
+            .skip((page - 1) * pageSize)
+            .limit(pageSize)
+            .toArray();
+        // Resolve actor/target names/emails
+        const ids = [];
+        for (const l of logs) {
+            if (l.actorId) ids.push(l.actorId);
+            if (l.targetId) ids.push(l.targetId);
+        }
+        const uniqueIds = Array.from(new Set(ids.map(id => id.toString()))).map(id => new ObjectId(id));
+        let userMap = new Map();
+        if (uniqueIds.length > 0) {
+            const usersCol = await getUsersCollection();
+            const users = await usersCol.find({ _id: { $in: uniqueIds } }).project({ firstName: 1, lastName: 1, email: 1 }).toArray();
+            userMap = new Map(users.map(u => [u._id.toString(), u]));
+        }
+
+        const enriched = logs.map(l => {
+            const actorU = l.actorId ? userMap.get(l.actorId.toString()) : null;
+            const targetU = l.targetId ? userMap.get(l.targetId.toString()) : null;
+            return {
+                ...l,
+                actor: actorU ? `${actorU.firstName || ''} ${actorU.lastName || ''}`.trim() || actorU.email : (l.actorId || null),
+                actorEmail: actorU ? actorU.email : null,
+                target: targetU ? `${targetU.firstName || ''} ${targetU.lastName || ''}`.trim() || targetU.email : (l.targetId || null),
+                targetEmail: targetU ? targetU.email : null
+            };
+        });
+
+        res.json({ success: true, logs: enriched, total, page, pageSize, totalPages: Math.ceil(total / pageSize) });
+    } catch (e) {
+        console.error('Error fetching audit logs:', e);
+        res.status(500).json({ error: 'Internal server error' });
     }
 });
 
