@@ -20,6 +20,33 @@ const jwt = require("jsonwebtoken");
 // The router will be added as a middleware and will take control of requests starting with path /record.
 const router = express.Router();
 
+// Resolve a report's PDF path across environments (local/prod) and cwd variants
+const resolvePdfPath = (report) => {
+    if (!report) return null;
+    const candidates = [];
+    const cwd = process.cwd();
+    const pdfPath = report.pdfPath;
+    const pdfFileName = pdfPath ? path.basename(pdfPath) : null;
+
+    if (pdfPath) {
+        // Absolute or relative as recorded
+        candidates.push(path.isAbsolute(pdfPath) ? pdfPath : path.resolve(cwd, pdfPath));
+    }
+    if (pdfFileName) {
+        // Typical locations depending on where node was started from
+        candidates.push(path.join(cwd, 'generated-reports', pdfFileName));
+        candidates.push(path.join(cwd, 'server', 'generated-reports', pdfFileName));
+        candidates.push(path.join(cwd, '..', 'server', 'generated-reports', pdfFileName));
+    }
+
+    for (const p of candidates) {
+        try {
+            if (p && fs.existsSync(p)) return p;
+        } catch {}
+    }
+    return null;
+};
+
 // Initialize PDF generators
 const pdfGenerator = new PDFReportGenerator();
 const enhancedPdfGenerator = new EnhancedPDFReportGenerator();
@@ -641,20 +668,21 @@ router.get("/:id/pdf", authenticateTokenForDownload, async (req, res) => {
             return res.status(404).json({ error: "PDF not found for this report" });
         }
 
-        // Check if the PDF file exists
-        if (!fs.existsSync(report.pdfPath)) {
+        // Resolve and check existence in common locations
+        const actualPath = resolvePdfPath(report);
+        if (!actualPath) {
             return res.status(404).json({ error: "PDF file not found on server" });
         }
 
         // Extract the actual filename from the path for a proper download filename
-        const actualFilename = path.basename(report.pdfPath);
+        const actualFilename = path.basename(actualPath);
         
         // Set headers for PDF download with the actual filename
         res.setHeader('Content-Type', 'application/pdf');
         res.setHeader('Content-Disposition', `attachment; filename="${actualFilename}"`);
         
         // Stream the PDF file
-        const fileStream = fs.createReadStream(report.pdfPath);
+    const fileStream = fs.createReadStream(actualPath);
         fileStream.pipe(res);
         
     } catch (err) {

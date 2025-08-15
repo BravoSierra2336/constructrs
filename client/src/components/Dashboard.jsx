@@ -125,19 +125,19 @@ const Dashboard = () => {
 
       {/* Modern Stats Grid */}
       <div className="modern-stats-grid">
-        <div className="modern-stat-card">
+        <div className="modern-stat-card no-interact">
           <div className="modern-stat-number">{stats.totalProjects}</div>
           <div className="modern-stat-label">🏗️ Active Projects</div>
         </div>
-        <div className="modern-stat-card">
+        <div className="modern-stat-card no-interact">
           <div className="modern-stat-number">{stats.totalReports}</div>
           <div className="modern-stat-label">📋 Total Reports</div>
         </div>
-        <div className="modern-stat-card">
+        <div className="modern-stat-card no-interact">
           <div className="modern-stat-number">{stats.recentReports.length}</div>
           <div className="modern-stat-label">📄 Recent Reports</div>
         </div>
-        <div className="modern-stat-card">
+        <div className="modern-stat-card no-interact">
           <div className="modern-stat-number">{user?.role === 'admin' ? '∞' : '1'}</div>
           <div className="modern-stat-label">🔐 Access Level</div>
         </div>

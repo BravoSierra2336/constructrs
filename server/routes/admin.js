@@ -4,11 +4,39 @@ import path from "path";
 import { getDatabase } from "../db/connection.js";
 import { ObjectId } from "mongodb";
 import { authenticateToken, requireRole } from "../middleware/auth.js";
+import { fileURLToPath } from 'url';
 
 const require = createRequire(import.meta.url);
 const express = require("express");
 
 const router = express.Router();
+
+// Resolve a report's PDF path across environments (local/prod) and cwd variants
+const resolvePdfPath = (report) => {
+    if (!report) return null;
+    const candidates = [];
+    const cwd = process.cwd();
+    const pdfPath = report.pdfPath;
+    const pdfFileName = pdfPath ? path.basename(pdfPath) : null;
+
+    if (pdfPath) {
+        // Absolute or relative as recorded
+        candidates.push(path.isAbsolute(pdfPath) ? pdfPath : path.resolve(cwd, pdfPath));
+    }
+    if (pdfFileName) {
+        // Typical locations depending on where node was started from
+        candidates.push(path.join(cwd, 'generated-reports', pdfFileName));
+        candidates.push(path.join(cwd, 'server', 'generated-reports', pdfFileName));
+        candidates.push(path.join(cwd, '..', 'server', 'generated-reports', pdfFileName));
+    }
+
+    for (const p of candidates) {
+        try {
+            if (p && fs.existsSync(p)) return p;
+        } catch {}
+    }
+    return null;
+};
 
 /**
  * GET /admin/check-access - Check if user has admin access (Debug endpoint)
@@ -74,7 +102,7 @@ router.get("/reports", authenticateToken, requireRole(['admin', 'project_manager
         console.log(`Found ${reports.length} reports in database`);
 
         // Get additional project and user information for each report
-        const enrichedReports = await Promise.all(reports.map(async (report) => {
+    const enrichedReports = await Promise.all(reports.map(async (report) => {
             let projectInfo = null;
             let inspectorInfo = null;
 
@@ -103,13 +131,14 @@ router.get("/reports", authenticateToken, requireRole(['admin', 'project_manager
             // Check if PDF file exists on disk
             let pdfExists = false;
             let pdfSize = null;
-            if (report.pdfPath && fs.existsSync(report.pdfPath)) {
+            const resolvedPath = resolvePdfPath(report);
+            if (resolvedPath) {
                 pdfExists = true;
                 try {
-                    const stats = fs.statSync(report.pdfPath);
+                    const stats = fs.statSync(resolvedPath);
                     pdfSize = Math.round(stats.size / 1024); // Size in KB
                 } catch (err) {
-                    console.warn(`Error getting PDF stats for ${report.pdfPath}:`, err.message);
+                    console.warn(`Error getting PDF stats for ${resolvedPath}:`, err.message);
                 }
             }
 
@@ -221,19 +250,21 @@ router.get("/reports/:id/download", authenticateToken, requireRole(['admin', 'pr
             return res.status(404).json({ error: "Report not found" });
         }
 
-        if (!report.pdfPath || !fs.existsSync(report.pdfPath)) {
+        // Resolve the actual PDF path dynamically
+        const actualPath = resolvePdfPath(report);
+        if (!actualPath) {
             return res.status(404).json({ error: "PDF file not found" });
         }
 
         // Extract the actual filename from the path for a proper download filename
-        const actualFilename = path.basename(report.pdfPath);
+        const actualFilename = path.basename(actualPath);
 
         // Set headers for PDF download with the actual filename
         res.setHeader('Content-Type', 'application/pdf');
         res.setHeader('Content-Disposition', `attachment; filename="${actualFilename}"`);
         
         // Stream the PDF file
-        const fileStream = fs.createReadStream(report.pdfPath);
+        const fileStream = fs.createReadStream(actualPath);
         fileStream.pipe(res);
 
         // Log the download for audit purposes

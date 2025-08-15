@@ -278,6 +278,17 @@ body {
   transform: translateY(-4px);
 }
 
+/* Make specific stat cards non-interactive when marked */
+.modern-stat-card.no-interact {
+  cursor: default;
+  pointer-events: none; /* disable click/hover */
+}
+
+.modern-stat-card.no-interact:hover {
+  box-shadow: var(--shadow-sm);
+  transform: none;
+}
+
 .modern-stat-number {
   font-size: 2.5rem;
   font-weight: 700;
