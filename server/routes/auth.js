@@ -370,9 +370,15 @@ router.get("/microsoft/callback",
       const frontendUrl = process.env.NODE_ENV === 'production' 
         ? 'https://constructrs.onrender.com'
         : 'http://localhost:5173';
-      
-      // Create a temporary page that sets localStorage and redirects
-      const redirectScript = `
+      // In production, avoid inline scripts to comply with CSP: rely on cookies + redirect
+      if (process.env.NODE_ENV === 'production') {
+        return res.redirect(`${frontendUrl}/dashboard`);
+      }
+
+      // In development, frontend runs on a different origin (Vite on 5173),
+      // so cookies from 5050 are not readable by the SPA. Use a temporary
+      // inline page to set localStorage, then redirect to the dashboard.
+      const devRedirectPage = `
         <html>
           <head>
             <title>Redirecting...</title>
@@ -383,20 +389,18 @@ router.get("/microsoft/callback",
               <p>You will be redirected to the dashboard shortly.</p>
             </div>
             <script>
-              // Set localStorage for React app compatibility
-              localStorage.setItem('token', '${token}');
-              localStorage.setItem('userData', '${JSON.stringify(normalizedUser).replace(/'/g, "\\'")}');
-              
-              // Redirect to dashboard after setting localStorage
-              setTimeout(() => {
-                window.location.href = '${frontendUrl}/dashboard';
-              }, 1000);
+              try {
+                localStorage.setItem('token', ${JSON.stringify(token)});
+                localStorage.setItem('userData', ${JSON.stringify(JSON.stringify(normalizedUser))});
+              } catch (e) {
+                console.error('Failed to set localStorage from OAuth callback:', e);
+              }
+              setTimeout(function() { window.location.href = '${frontendUrl}/dashboard'; }, 300);
             </script>
           </body>
         </html>
       `;
-      
-      res.send(redirectScript);
+      res.send(devRedirectPage);
     } catch (error) {
       console.error("Error in Microsoft OAuth callback:", error);
       const frontendUrl = process.env.NODE_ENV === 'production' 
