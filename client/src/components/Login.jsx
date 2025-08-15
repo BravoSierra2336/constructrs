@@ -41,16 +41,18 @@ const Login = () => {
     e.preventDefault();
     setLoading(true);
     setError('');
-
-    const result = await login(formData.email, formData.password);
-    
-    if (result.success) {
-      navigate('/dashboard');
-    } else {
-      setError(result.error);
+    try {
+      const result = await login(formData.email, formData.password);
+      if (result?.success) {
+        navigate('/dashboard');
+      } else if (result?.error) {
+        setError(result.error);
+      }
+    } catch (err) {
+      setError(err?.message || 'Login failed');
+    } finally {
+      setLoading(false);
     }
-    
-    setLoading(false);
   };
 
   const handleRegister = async (e) => {
@@ -58,6 +60,27 @@ const Login = () => {
     setLoading(true);
     setError('');
 
+    // Basic client-side validation to avoid server 400s
+    if ((registerData.firstName || '').trim().length < 2) {
+      setError('First name must be at least 2 characters long');
+      setLoading(false);
+      return;
+    }
+    if ((registerData.lastName || '').trim().length < 2) {
+      setError('Last name must be at least 2 characters long');
+      setLoading(false);
+      return;
+    }
+    if (!registerData.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(registerData.email)) {
+      setError('Please enter a valid email address');
+      setLoading(false);
+      return;
+    }
+    if ((registerData.password || '').length < 6) {
+      setError('Password must be at least 6 characters long');
+      setLoading(false);
+      return;
+    }
     if (registerData.password !== registerData.confirmPassword) {
       setError('Passwords do not match');
       setLoading(false);
@@ -66,13 +89,11 @@ const Login = () => {
 
     const { confirmPassword, ...userData } = registerData;
     const result = await register(userData);
-    
-    if (result.success) {
+    if (result?.success) {
       navigate('/dashboard');
     } else {
-      setError(result.error);
+      setError(result?.error || 'Registration failed');
     }
-    
     setLoading(false);
   };
 

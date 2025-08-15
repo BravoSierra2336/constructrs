@@ -245,14 +245,26 @@ export const AuthProvider = ({ children }) => {
     try {
       const apiUrl = getApiUrl();
       console.log('📝 Attempting registration with:', { ...userData, password: '[HIDDEN]' });
-  const response = await api.post('/auth/register', userData);
-      
+      const response = await api.post('/auth/register', userData);
       console.log('📬 Registration response:', response.data);
-      return response.data;
+      if (response.data?.token && response.data?.user) {
+        const { token, user } = response.data;
+        const userId = user.id || user._id;
+        const userEmail = user.email;
+        if (!userId || !userEmail) {
+          return { success: false, error: 'Invalid user data structure' };
+        }
+        const normalizedUser = { ...user, id: userId, _id: userId, email: userEmail };
+        localStorage.setItem('token', token);
+        localStorage.setItem('userData', JSON.stringify(normalizedUser));
+        setUser(normalizedUser);
+        return { success: true, token, user: normalizedUser };
+      }
+      return { success: false, error: 'Registration did not return a token' };
     } catch (error) {
       console.error('❌ Registration error:', error);
       const errorMessage = error.response?.data?.error || 'Registration failed';
-      throw new Error(errorMessage);
+      return { success: false, error: errorMessage };
     }
   };
 
