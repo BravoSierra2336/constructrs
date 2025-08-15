@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Auth Debug</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f7fa;
+        }
+        .card {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .status {
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+            font-weight: bold;
+        }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        .warning { background: #fff3cd; color: #856404; }
+        .info { background: #d1ecf1; color: #0c5460; }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #0056b3; }
+        .token-display {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 5px;
+            word-break: break-all;
+            font-family: monospace;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔐 Admin Authentication Debug</h1>
+    
+    <div class="card">
+        <h2>Token Storage Status</h2>
+        <div id="token-status"></div>
+        <button onclick="checkTokens()">Check Tokens</button>
+        <button onclick="clearTokens()">Clear All Tokens</button>
+    </div>
+
+    <div class="card">
+        <h2>Server Authentication Test</h2>
+        <div id="auth-test-status"></div>
+        <button onclick="testAuthentication()">Test Admin Access</button>
+    </div>
+
+    <div class="card">
+        <h2>Manual Token Input</h2>
+        <p>If you have a valid token, you can manually set it here:</p>
+        <input type="text" id="manual-token" placeholder="Paste your JWT token here" style="width: 100%; padding: 8px; margin: 10px 0;">
+        <button onclick="setManualToken()">Set Token</button>
+    </div>
+
+    <div class="card">
+        <h2>Quick Actions</h2>
+        <button onclick="goToLogin()">Go to Login Page</button>
+        <button onclick="goToAdminDashboard()">Go to Admin Dashboard</button>
+        <button onclick="location.reload()">Refresh Page</button>
+    </div>
+
+    <script>
+        function getAuthToken() {
+            return localStorage.getItem('authToken') || localStorage.getItem('token');
+        }
+
+        function checkTokens() {
+            const authToken = localStorage.getItem('authToken');
+            const token = localStorage.getItem('token');
+            const userData = localStorage.getItem('userData');
+            
+            let html = '';
+            
+            if (authToken) {
+                html += `<div class="status success">✅ authToken found: ${authToken.substring(0, 20)}...</div>`;
+            } else {
+                html += `<div class="status error">❌ No authToken found</div>`;
+            }
+            
+            if (token) {
+                html += `<div class="status success">✅ token found: ${token.substring(0, 20)}...</div>`;
+            } else {
+                html += `<div class="status error">❌ No token found</div>`;
+            }
+            
+            if (userData) {
+                html += `<div class="status info">ℹ️ userData found: ${userData.substring(0, 50)}...</div>`;
+            } else {
+                html += `<div class="status warning">⚠️ No userData found</div>`;
+            }
+            
+            const effectiveToken = getAuthToken();
+            if (effectiveToken) {
+                html += `<div class="status success">🎯 Effective token: ${effectiveToken.substring(0, 20)}...</div>`;
+                html += `<div class="token-display">${effectiveToken}</div>`;
+            } else {
+                html += `<div class="status error">❌ No effective token available</div>`;
+            }
+            
+            document.getElementById('token-status').innerHTML = html;
+        }
+
+        function clearTokens() {
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('token');
+            localStorage.removeItem('userData');
+            checkTokens();
+            document.getElementById('auth-test-status').innerHTML = '<div class="status info">Tokens cleared. Test authentication again.</div>';
+        }
+
+        async function testAuthentication() {
+            const token = getAuthToken();
+            const statusDiv = document.getElementById('auth-test-status');
+            
+            if (!token) {
+                statusDiv.innerHTML = '<div class="status error">❌ No token available for testing</div>';
+                return;
+            }
+            
+            statusDiv.innerHTML = '<div class="status info">⏳ Testing authentication...</div>';
+            
+            try {
+                // Test admin access endpoint
+                const response = await fetch('/admin/check-access', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    statusDiv.innerHTML = `
+                        <div class="status success">✅ Authentication successful!</div>
+                        <div class="status info">User: ${data.user?.email || 'Unknown'}</div>
+                        <div class="status info">Role: ${data.user?.role || 'Unknown'}</div>
+                    `;
+                } else {
+                    const errorText = await response.text();
+                    statusDiv.innerHTML = `
+                        <div class="status error">❌ Authentication failed</div>
+                        <div class="status error">Status: ${response.status}</div>
+                        <div class="status error">Error: ${errorText}</div>
+                    `;
+                }
+            } catch (error) {
+                statusDiv.innerHTML = `
+                    <div class="status error">❌ Request failed</div>
+                    <div class="status error">Error: ${error.message}</div>
+                `;
+            }
+        }
+
+        function setManualToken() {
+            const token = document.getElementById('manual-token').value.trim();
+            if (token) {
+                localStorage.setItem('authToken', token);
+                localStorage.setItem('token', token);
+                checkTokens();
+                document.getElementById('manual-token').value = '';
+                alert('Token set! You can now test authentication.');
+            } else {
+                alert('Please enter a valid token');
+            }
+        }
+
+        function goToLogin() {
+            window.location.href = '/';
+        }
+
+        function goToAdminDashboard() {
+            window.location.href = '/admin-dashboard.html';
+        }
+
+        // Auto-check tokens on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            checkTokens();
+        });
+    </script>
+</body>
+</html>

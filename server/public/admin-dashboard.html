@@ -3,51 +3,66 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Dashboard - Construction Reports</title>
+    <title>Admin Dashboard - Redirecting...</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: #f5f7fa;
-            color: #333;
-            line-height: 1.6;
-        }
-
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-
-        .header {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
-            padding: 30px;
-            border-radius: 10px;
-            margin-bottom: 30px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
         }
-
-        .header h1 {
-            font-size: 2.5rem;
-            margin-bottom: 10px;
+        .redirect-container {
+            text-align: center;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 40px;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(31, 38, 135, 0.37);
         }
-
-        .header p {
-            font-size: 1.1rem;
-            opacity: 0.9;
+        .spinner {
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top: 4px solid white;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
         }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .manual-link {
+            margin-top: 30px;
+        }
+        .manual-link a {
+            color: white;
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="redirect-container">
+        <h1>🏗️ Admin Dashboard</h1>
+        <div class="spinner"></div>
+        <p>Redirecting to the working dashboard...</p>
+        <div class="manual-link">
+            <p>If you're not redirected automatically, <a href="/admin-dashboard-working.html">click here</a></p>
+        </div>
+    </div>
 
-        .auth-status {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            background: rgba(255, 255, 255, 0.2);
+    <script>
+        // Immediate redirect to the working dashboard
+        setTimeout(() => {
+            window.location.href = '/admin-dashboard-working.html';
+        }, 2000);
+    </script>
+</body>
+</html>
             padding: 8px 15px;
             border-radius: 20px;
             font-size: 0.9rem;
@@ -442,10 +457,14 @@
         let reportToDelete = null;
 
         // Load reports on page load
-        document.addEventListener('DOMContentLoaded', function() {
-            if (checkAuthentication()) {
-                loadReports();
-                loadStats();
+        document.addEventListener('DOMContentLoaded', async function() {
+            const isAuthenticated = await checkAuthentication();
+            if (isAuthenticated) {
+                // Add a small delay to ensure token validation is complete
+                setTimeout(() => {
+                    loadReports();
+                    loadStats();
+                }, 100);
             }
         });
 
@@ -454,8 +473,24 @@
             return localStorage.getItem('authToken') || localStorage.getItem('token');
         }
 
+        // Validate token with server
+        async function validateToken(token) {
+            try {
+                const response = await fetch('/admin/check-access', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                return response.ok;
+            } catch (error) {
+                console.error('Token validation failed:', error);
+                return false;
+            }
+        }
+
         // Check authentication status on page load
-        function checkAuthentication() {
+        async function checkAuthentication() {
             const token = getAuthToken();
             const authStatus = document.getElementById('auth-status');
             const authIndicator = document.getElementById('auth-indicator');
@@ -465,10 +500,28 @@
                 authStatus.className = 'auth-status unauthenticated';
                 authIndicator.textContent = '🔒';
                 authText.textContent = 'Not authenticated';
-                showError('Please log in to access the admin dashboard. Redirecting to login...');
-                setTimeout(() => {
-                    window.location.href = '/';
-                }, 3000);
+                
+                // Show login prompt instead of immediate redirect
+                showLoginPrompt();
+                return false;
+            }
+
+            // Validate token with server
+            authIndicator.textContent = '⏳';
+            authText.textContent = 'Validating...';
+            
+            const isValidToken = await validateToken(token);
+            
+            if (!isValidToken) {
+                // Clear invalid tokens
+                localStorage.removeItem('authToken');
+                localStorage.removeItem('token');
+                
+                authStatus.className = 'auth-status unauthenticated';
+                authIndicator.textContent = '🔒';
+                authText.textContent = 'Invalid token';
+                
+                showLoginPrompt();
                 return false;
             } else {
                 authStatus.className = 'auth-status authenticated';
@@ -476,6 +529,52 @@
                 authText.textContent = 'Authenticated';
                 return true;
             }
+        }
+
+        // Show login prompt with options
+        function showLoginPrompt() {
+            const container = document.querySelector('.container');
+            container.innerHTML = `
+                <div class="header">
+                    <div id="auth-status" class="auth-status unauthenticated">
+                        <span id="auth-indicator">🔒</span>
+                        <span id="auth-text">Not authenticated</span>
+                    </div>
+                    <h1>🏗️ Admin Dashboard</h1>
+                    <p>Authentication Required</p>
+                </div>
+                
+                <div style="text-align: center; padding: 40px; background: white; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
+                    <h2>🔐 Admin Access Required</h2>
+                    <p style="margin: 20px 0; color: #666;">You need to be logged in as an administrator to access this dashboard.</p>
+                    
+                    <div style="margin: 30px 0;">
+                        <button onclick="redirectToLogin()" style="background: #667eea; color: white; border: none; padding: 12px 24px; border-radius: 5px; margin: 0 10px; cursor: pointer; font-size: 16px;">
+                            Go to Login Page
+                        </button>
+                        <button onclick="checkAuthAgain()" style="background: #28a745; color: white; border: none; padding: 12px 24px; border-radius: 5px; margin: 0 10px; cursor: pointer; font-size: 16px;">
+                            I'm Already Logged In
+                        </button>
+                    </div>
+                    
+                    <div style="margin-top: 30px; padding: 20px; background: #f8f9fa; border-radius: 5px; color: #666; font-size: 14px;">
+                        <strong>Instructions:</strong><br>
+                        1. Log in through the main application first<br>
+                        2. Make sure you have admin/project manager permissions<br>
+                        3. Then return to this admin dashboard
+                    </div>
+                </div>
+            `;
+        }
+
+        // Redirect to main login page
+        function redirectToLogin() {
+            window.location.href = '/';
+        }
+
+        // Check authentication again
+        function checkAuthAgain() {
+            location.reload();
         }
 
         // Handle authentication failure
@@ -497,14 +596,24 @@
 
         async function loadReports() {
             try {
-                document.getElementById('loading').style.display = 'block';
-                document.getElementById('reports-container').style.display = 'none';
-                
                 const token = getAuthToken();
                 if (!token) {
-                    showError('Please log in to access admin features');
+                    // Instead of showing error, redirect to authentication
+                    document.getElementById('loading').style.display = 'none';
+                    showLoginPrompt();
                     return;
                 }
+
+                // Validate token first before making API calls
+                const isValidToken = await validateToken(token);
+                if (!isValidToken) {
+                    document.getElementById('loading').style.display = 'none';
+                    handleAuthFailure();
+                    return;
+                }
+
+                document.getElementById('loading').style.display = 'block';
+                document.getElementById('reports-container').style.display = 'none';
 
                 const response = await fetch('/admin/reports', {
                     headers: {
@@ -533,8 +642,10 @@
                 
             } catch (error) {
                 console.error('Error loading reports:', error);
-                showError('Error loading reports: ' + error.message);
                 document.getElementById('loading').style.display = 'none';
+                
+                // Instead of showing technical error, show user-friendly message
+                showLoginPrompt();
             }
         }
 

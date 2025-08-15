@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            background: #f5f7fa; 
+            color: #333; 
+            line-height: 1.6; 
+        }
+        .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+        .header { 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+            color: white; 
+            padding: 30px; 
+            border-radius: 10px; 
+            margin-bottom: 30px; 
+            text-align: center;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        .status-card {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            text-align: center;
+            margin: 20px 0;
+        }
+        .btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 10px;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+        }
+        .btn:hover { background: #556de8; }
+        .btn-success { background: #28a745; }
+        .btn-success:hover { background: #218838; }
+        .btn-danger { background: #dc3545; }
+        .btn-danger:hover { background: #c82333; }
+        .auth-status {
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            font-weight: bold;
+        }
+        .auth-success { background: #d4edda; color: #155724; }
+        .auth-error { background: #f8d7da; color: #721c24; }
+        .auth-warning { background: #fff3cd; color: #856404; }
+        .hidden { display: none; }
+        #reports-section {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            margin-top: 20px;
+        }
+        .report-item {
+            border: 1px solid #eee;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+            background: #f9f9f9;
+        }
+        .report-title { font-weight: bold; color: #667eea; }
+        .report-meta { color: #666; font-size: 14px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🏗️ Admin Dashboard</h1>
+            <p>Construction Reports Management</p>
+        </div>
+
+        <div class="status-card">
+            <h2>🔐 Authentication Status</h2>
+            <div id="auth-status-display" class="auth-status auth-warning">
+                ⏳ Checking authentication...
+            </div>
+            
+            <div id="auth-actions">
+                <button onclick="checkAuth()" class="btn">Check Authentication</button>
+                <button onclick="clearAuth()" class="btn btn-danger">Clear Auth Data</button>
+                <a href="/" class="btn">Go to Main App</a>
+                <a href="/admin-fix.html" class="btn btn-success">Quick Fix Tool</a>
+            </div>
+        </div>
+
+        <div id="reports-section" class="hidden">
+            <h2>📊 Reports Dashboard</h2>
+            <div id="reports-list">
+                <p>Loading reports...</p>
+            </div>
+            <button onclick="loadReports()" class="btn">Refresh Reports</button>
+        </div>
+    </div>
+
+    <script>
+        // Simple auth checker that doesn't trigger errors
+        function getToken() {
+            return localStorage.getItem('authToken') || localStorage.getItem('token');
+        }
+
+        async function checkAuth() {
+            const statusDiv = document.getElementById('auth-status-display');
+            statusDiv.className = 'auth-status auth-warning';
+            statusDiv.textContent = '⏳ Checking authentication...';
+
+            const token = getToken();
+            
+            if (!token) {
+                statusDiv.className = 'auth-status auth-error';
+                statusDiv.innerHTML = `
+                    ❌ No authentication token found<br>
+                    <small>Please log in through the main application first</small>
+                `;
+                return false;
+            }
+
+            try {
+                // Test the token
+                const response = await fetch('/admin/check-access', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    statusDiv.className = 'auth-status auth-success';
+                    statusDiv.innerHTML = `
+                        ✅ Authentication successful!<br>
+                        <small>User: ${data.user?.email || 'Unknown'} | Role: ${data.user?.role || 'Unknown'}</small>
+                    `;
+                    
+                    // Show reports section
+                    document.getElementById('reports-section').classList.remove('hidden');
+                    return true;
+                } else {
+                    statusDiv.className = 'auth-status auth-error';
+                    statusDiv.innerHTML = `
+                        ❌ Authentication failed<br>
+                        <small>Please log in through the main app</small>
+                    `;
+                    return false;
+                }
+            } catch (error) {
+                statusDiv.className = 'auth-status auth-error';
+                statusDiv.innerHTML = `
+                    ❌ Unable to connect<br>
+                    <small>Check your connection</small>
+                `;
+                return false;
+            }
+        }
+
+        async function loadReports() {
+            const token = getToken();
+            if (!token) {
+                const reportsDiv = document.getElementById('reports-list');
+                reportsDiv.innerHTML = '<p style="color: #666;">Please authenticate first to view reports.</p>';
+                return;
+            }
+
+            const reportsDiv = document.getElementById('reports-list');
+            reportsDiv.innerHTML = '<p>⏳ Loading reports...</p>';
+
+            try {
+                const response = await fetch('/admin/reports', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    displayReports(data.reports);
+                } else {
+                    reportsDiv.innerHTML = `<p style="color: #666;">Unable to load reports. Please check authentication.</p>`;
+                }
+            } catch (error) {
+                reportsDiv.innerHTML = `<p style="color: #666;">Connection issue. Please try again.</p>`;
+            }
+        }
+
+        function displayReports(reports) {
+            const reportsDiv = document.getElementById('reports-list');
+            
+            if (!reports || reports.length === 0) {
+                reportsDiv.innerHTML = '<p>No reports found.</p>';
+                return;
+            }
+
+            const reportsHtml = reports.map(report => `
+                <div class="report-item">
+                    <div class="report-title">${report.title || 'Untitled Report'}</div>
+                    <div class="report-meta">
+                        Author: ${report.author || 'Unknown'} | 
+                        Date: ${report.createdAt ? new Date(report.createdAt).toLocaleDateString() : 'Unknown'} |
+                        Project: ${report.projectName || 'Unknown'}
+                    </div>
+                </div>
+            `).join('');
+
+            reportsDiv.innerHTML = `
+                <p><strong>Found ${reports.length} reports:</strong></p>
+                ${reportsHtml}
+            `;
+        }
+
+        function clearAuth() {
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('token');
+            localStorage.removeItem('userData');
+            document.getElementById('auth-status-display').className = 'auth-status auth-warning';
+            document.getElementById('auth-status-display').textContent = '🧹 Authentication data cleared';
+            document.getElementById('reports-section').classList.add('hidden');
+        }
+
+        // Check auth on page load, but don't auto-load reports
+        document.addEventListener('DOMContentLoaded', function() {
+            checkAuth();
+        });
+    </script>
+</body>
+</html>

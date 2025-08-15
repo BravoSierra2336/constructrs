@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quick Admin Fix</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f7fa;
+        }
+        .card {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        .status {
+            padding: 15px;
+            border-radius: 5px;
+            margin: 15px 0;
+            font-weight: bold;
+        }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        .warning { background: #fff3cd; color: #856404; }
+        .info { background: #d1ecf1; color: #0c5460; }
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 10px;
+            font-size: 16px;
+        }
+        button:hover { background: #556de8; }
+        .token-input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            margin: 10px 0;
+            font-family: monospace;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1>🔧 Quick Admin Authentication Fix</h1>
+        <p>This tool will help you quickly fix admin authentication issues.</p>
+        
+        <div id="status"></div>
+        
+        <div style="margin: 30px 0;">
+            <button onclick="checkCurrentAuth()">Check Current Auth</button>
+            <button onclick="tryAutoFix()">Try Auto-Fix</button>
+            <button onclick="clearAllAuth()">Clear All Auth</button>
+        </div>
+        
+        <div style="border-top: 1px solid #eee; padding-top: 20px; margin-top: 30px;">
+            <h3>Manual Token Input</h3>
+            <p>If you have a valid JWT token, paste it here:</p>
+            <input type="text" id="manual-token" class="token-input" placeholder="Paste JWT token here...">
+            <button onclick="setManualToken()">Set Token</button>
+        </div>
+        
+        <div style="border-top: 1px solid #eee; padding-top: 20px; margin-top: 30px;">
+            <h3>Quick Actions</h3>
+            <a href="/" style="text-decoration: none;"><button>Go to Main App</button></a>
+            <a href="/admin-dashboard.html" style="text-decoration: none;"><button>Try Admin Dashboard</button></a>
+        </div>
+    </div>
+
+    <script>
+        function updateStatus(message, type = 'info') {
+            const statusDiv = document.getElementById('status');
+            statusDiv.innerHTML = `<div class="status ${type}">${message}</div>`;
+        }
+
+        function getAuthToken() {
+            return localStorage.getItem('authToken') || localStorage.getItem('token');
+        }
+
+        async function checkCurrentAuth() {
+            updateStatus('🔍 Checking current authentication...', 'info');
+            
+            const authToken = localStorage.getItem('authToken');
+            const token = localStorage.getItem('token');
+            const userData = localStorage.getItem('userData');
+            
+            let report = '📋 Authentication Report:<br>';
+            report += `• authToken: ${authToken ? '✅ Found' : '❌ Missing'}<br>`;
+            report += `• token: ${token ? '✅ Found' : '❌ Missing'}<br>`;
+            report += `• userData: ${userData ? '✅ Found' : '❌ Missing'}<br>`;
+            
+            const effectiveToken = getAuthToken();
+            
+            if (effectiveToken) {
+                report += `• Effective token: ✅ Available<br>`;
+                
+                // Test with server
+                try {
+                    const response = await fetch('/admin/check-access', {
+                        headers: {
+                            'Authorization': `Bearer ${effectiveToken}`,
+                            'Content-Type': 'application/json'
+                        }
+                    });
+                    
+                    if (response.ok) {
+                        const data = await response.json();
+                        report += `• Server validation: ✅ Success<br>`;
+                        report += `• User: ${data.user?.email || 'Unknown'}<br>`;
+                        report += `• Role: ${data.user?.role || 'Unknown'}`;
+                        updateStatus(report, 'success');
+                    } else {
+                        report += `• Server validation: ❌ Failed (${response.status})`;
+                        updateStatus(report, 'error');
+                    }
+                } catch (error) {
+                    report += `• Server validation: ❌ Error (${error.message})`;
+                    updateStatus(report, 'error');
+                }
+            } else {
+                report += `• Effective token: ❌ None available`;
+                updateStatus(report, 'error');
+            }
+        }
+
+        async function tryAutoFix() {
+            updateStatus('🔧 Attempting auto-fix...', 'info');
+            
+            // Try to extract token from userData
+            const userData = localStorage.getItem('userData');
+            if (userData) {
+                try {
+                    const user = JSON.parse(userData);
+                    if (user.token) {
+                        localStorage.setItem('authToken', user.token);
+                        localStorage.setItem('token', user.token);
+                        updateStatus('✅ Auto-fix successful! Token restored from userData. You can now try accessing the admin dashboard.', 'success');
+                        return;
+                    }
+                } catch (e) {
+                    console.error('Could not parse userData:', e);
+                }
+            }
+            
+            // Check if there's a token in sessionStorage
+            const sessionToken = sessionStorage.getItem('token') || sessionStorage.getItem('authToken');
+            if (sessionToken) {
+                localStorage.setItem('authToken', sessionToken);
+                localStorage.setItem('token', sessionToken);
+                updateStatus('✅ Auto-fix successful! Token restored from sessionStorage.', 'success');
+                return;
+            }
+            
+            updateStatus('❌ Auto-fix failed. No valid tokens found in userData or sessionStorage. Please log in through the main application.', 'error');
+        }
+
+        function clearAllAuth() {
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('token');
+            localStorage.removeItem('userData');
+            sessionStorage.removeItem('authToken');
+            sessionStorage.removeItem('token');
+            updateStatus('🧹 All authentication data cleared. Please log in again through the main application.', 'warning');
+        }
+
+        function setManualToken() {
+            const token = document.getElementById('manual-token').value.trim();
+            if (!token) {
+                updateStatus('❌ Please enter a valid token.', 'error');
+                return;
+            }
+            
+            if (!token.includes('.')) {
+                updateStatus('❌ Invalid JWT token format.', 'error');
+                return;
+            }
+            
+            localStorage.setItem('authToken', token);
+            localStorage.setItem('token', token);
+            document.getElementById('manual-token').value = '';
+            updateStatus('✅ Token set manually! You can now try accessing the admin dashboard.', 'success');
+        }
+
+        // Auto-check on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            updateStatus('🚀 Quick Admin Fix loaded. Click "Check Current Auth" to diagnose authentication issues.', 'info');
+        });
+    </script>
+</body>
+</html>

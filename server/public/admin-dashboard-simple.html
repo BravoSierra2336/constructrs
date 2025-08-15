@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - Construction Reports</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f7fa;
+            color: #333;
+            line-height: 1.6;
+        }
+        .container { max-width: 1400px; margin: 0 auto; padding: 20px; }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            position: relative;
+        }
+        .auth-status {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.2);
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .auth-status.authenticated { background: rgba(76, 175, 80, 0.3); }
+        .auth-status.unauthenticated { background: rgba(244, 67, 54, 0.3); }
+        .login-prompt {
+            text-align: center;
+            padding: 40px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            margin-top: 30px;
+        }
+        .login-prompt h2 { color: #667eea; margin-bottom: 20px; }
+        .login-prompt p { color: #666; margin: 15px 0; }
+        .btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 5px;
+            margin: 10px;
+            cursor: pointer;
+            font-size: 16px;
+            text-decoration: none;
+            display: inline-block;
+        }
+        .btn:hover { background: #556de8; }
+        .btn-success { background: #28a745; }
+        .btn-success:hover { background: #218838; }
+        .quick-login {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            border-left: 4px solid #667eea;
+        }
+        .error { background: #f8d7da; color: #721c24; padding: 15px; border-radius: 5px; margin: 15px 0; }
+        .success { background: #d4edda; color: #155724; padding: 15px; border-radius: 5px; margin: 15px 0; }
+        .loading { 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            padding: 50px; 
+            font-size: 18px; 
+            color: #667eea; 
+        }
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin-right: 15px;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        #main-content { display: none; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div id="auth-status" class="auth-status">
+                <span id="auth-indicator">⏳</span>
+                <span id="auth-text">Checking...</span>
+            </div>
+            <h1>🏗️ Admin Dashboard</h1>
+            <p>Construction Reports Management System</p>
+        </div>
+
+        <!-- Loading State -->
+        <div id="loading-state" class="loading">
+            <div class="spinner"></div>
+            Initializing dashboard...
+        </div>
+
+        <!-- Login Prompt -->
+        <div id="login-prompt" class="login-prompt" style="display: none;">
+            <h2>🔐 Authentication Required</h2>
+            <p>You need to be logged in as an administrator to access this dashboard.</p>
+            
+            <div class="quick-login">
+                <h3>🚀 Quick Login Options</h3>
+                <p><strong>Option 1:</strong> Log in through the main application first</p>
+                <a href="/" class="btn">Go to Main App</a>
+                
+                <p style="margin-top: 20px;"><strong>Option 2:</strong> I'm already logged in</p>
+                <button onclick="retryAuthentication()" class="btn btn-success">Retry Authentication</button>
+                
+                <p style="margin-top: 20px;"><strong>Option 3:</strong> Debug authentication issues</p>
+                <a href="/admin-auth-debug.html" class="btn">Debug Authentication</a>
+            </div>
+
+            <div id="login-error" style="display: none;"></div>
+            <div id="login-success" style="display: none;"></div>
+        </div>
+
+        <!-- Main Dashboard Content -->
+        <div id="main-content">
+            <p>Main dashboard content will load here...</p>
+        </div>
+    </div>
+
+    <!-- Include auth fix script -->
+    <script src="/admin-auth-fix.js"></script>
+
+    <script>
+        // Enhanced authentication system
+        class AdminAuth {
+            constructor() {
+                this.token = null;
+                this.user = null;
+                this.isAuthenticated = false;
+            }
+
+            // Get auth token from multiple sources
+            getAuthToken() {
+                // Try localStorage first
+                let token = localStorage.getItem('authToken') || localStorage.getItem('token');
+                
+                // If no token, try to extract from userData
+                if (!token) {
+                    const userData = localStorage.getItem('userData');
+                    if (userData) {
+                        try {
+                            const user = JSON.parse(userData);
+                            token = user.token;
+                            if (token) {
+                                // Save it to standard locations
+                                localStorage.setItem('authToken', token);
+                                localStorage.setItem('token', token);
+                            }
+                        } catch (e) {
+                            console.warn('Could not parse userData:', e);
+                        }
+                    }
+                }
+                
+                return token;
+            }
+
+            // Validate token with server
+            async validateToken(token) {
+                try {
+                    const response = await fetch('/admin/check-access', {
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        }
+                    });
+                    
+                    if (response.ok) {
+                        const data = await response.json();
+                        this.user = data.user;
+                        this.isAuthenticated = true;
+                        return { success: true, user: data.user };
+                    } else {
+                        const errorText = await response.text();
+                        return { success: false, error: `${response.status}: ${errorText}` };
+                    }
+                } catch (error) {
+                    return { success: false, error: error.message };
+                }
+            }
+
+            // Update UI based on auth status
+            updateAuthStatus(status, message, isAuthenticated = false) {
+                const authStatus = document.getElementById('auth-status');
+                const authIndicator = document.getElementById('auth-indicator');
+                const authText = document.getElementById('auth-text');
+                
+                authStatus.className = `auth-status ${isAuthenticated ? 'authenticated' : 'unauthenticated'}`;
+                authIndicator.textContent = isAuthenticated ? '✅' : '🔒';
+                authText.textContent = message;
+            }
+
+            // Show login prompt
+            showLoginPrompt(error = null) {
+                document.getElementById('loading-state').style.display = 'none';
+                document.getElementById('main-content').style.display = 'none';
+                document.getElementById('login-prompt').style.display = 'block';
+                
+                if (error) {
+                    const errorDiv = document.getElementById('login-error');
+                    errorDiv.innerHTML = `<div class="error">❌ ${error}</div>`;
+                    errorDiv.style.display = 'block';
+                }
+            }
+
+            // Show main content
+            showMainContent() {
+                document.getElementById('loading-state').style.display = 'none';
+                document.getElementById('login-prompt').style.display = 'none';
+                document.getElementById('main-content').style.display = 'block';
+            }
+
+            // Main authentication check
+            async checkAuthentication() {
+                this.updateAuthStatus('⏳', 'Checking authentication...', false);
+                
+                const token = this.getAuthToken();
+                
+                if (!token) {
+                    this.updateAuthStatus('🔒', 'No token found', false);
+                    this.showLoginPrompt('No authentication token found. Please log in through the main application.');
+                    return false;
+                }
+
+                this.token = token;
+                this.updateAuthStatus('⏳', 'Validating token...', false);
+                
+                const result = await this.validateToken(token);
+                
+                if (result.success) {
+                    this.updateAuthStatus('✅', `Authenticated as ${result.user.email}`, true);
+                    this.showMainContent();
+                    return true;
+                } else {
+                    // Clear invalid tokens
+                    localStorage.removeItem('authToken');
+                    localStorage.removeItem('token');
+                    
+                    this.updateAuthStatus('🔒', 'Authentication failed', false);
+                    this.showLoginPrompt(`Authentication failed: ${result.error}`);
+                    return false;
+                }
+            }
+        }
+
+        // Initialize auth system
+        const adminAuth = new AdminAuth();
+
+        // Retry authentication function
+        async function retryAuthentication() {
+            const successDiv = document.getElementById('login-success');
+            successDiv.innerHTML = '<div class="success">🔄 Retrying authentication...</div>';
+            successDiv.style.display = 'block';
+            
+            const isAuthenticated = await adminAuth.checkAuthentication();
+            
+            if (!isAuthenticated) {
+                successDiv.style.display = 'none';
+            }
+        }
+
+        // Start authentication check when page loads
+        document.addEventListener('DOMContentLoaded', async function() {
+            console.log('🚀 Admin Dashboard Starting...');
+            
+            // Small delay to ensure localStorage is ready
+            setTimeout(async () => {
+                await adminAuth.checkAuthentication();
+            }, 100);
+        });
+
+        // Make auth available globally for debugging
+        window.adminAuth = adminAuth;
+    </script>
+</body>
+</html>

@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="refresh" content="0; url=/admin-dashboard-working.html">
+    <title>Redirecting to Admin Dashboard</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            text-align: center; 
+            padding: 50px; 
+            background: #f5f7fa; 
+        }
+        .redirect-message {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            display: inline-block;
+        }
+    </style>
+</head>
+<body>
+    <div class="redirect-message">
+        <h2>🔄 Redirecting to Working Admin Dashboard</h2>
+        <p>You are being redirected to the functional admin dashboard...</p>
+        <p><a href="/admin-dashboard-working.html">Click here if you are not redirected automatically</a></p>
+    </div>
+    
+    <script>
+        // Immediate redirect for browsers that don't support meta refresh
+        window.location.href = '/admin-dashboard-working.html';
+    </script>
+</body>
+</html>
