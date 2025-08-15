@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Token Migration - Construction Admin</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+        .migration-container {
+            text-align: center;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 40px;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(31, 38, 135, 0.37);
+            max-width: 500px;
+        }
+        .btn {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            margin: 10px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+        .btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            border-color: rgba(255, 255, 255, 0.5);
+        }
+        .btn-success {
+            background: rgba(40, 167, 69, 0.8);
+            border-color: rgba(40, 167, 69, 1);
+        }
+        .status {
+            margin: 20px 0;
+            padding: 15px;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.1);
+        }
+    </style>
+</head>
+<body>
+    <div class="migration-container">
+        <h1>🔧 Token Standardization</h1>
+        <p>This tool will standardize your authentication to use a single token type.</p>
+        
+        <div id="status" class="status">
+            ⏳ Ready to check current tokens...
+        </div>
+        
+        <button class="btn" onclick="checkTokens()">🔍 Check Current Tokens</button>
+        <button class="btn btn-success" onclick="migrateTokens()">🔄 Standardize Tokens</button>
+        <button class="btn" onclick="clearAllTokens()">🧹 Clear All Tokens</button>
+        
+        <hr style="margin: 30px 0; border: 1px solid rgba(255,255,255,0.2);">
+        
+        <p><strong>After migration:</strong></p>
+        <ul style="text-align: left; margin: 20px 0;">
+            <li>Only 'token' will be used (no more 'authToken')</li>
+            <li>All admin dashboards will use the same token</li>
+            <li>No more token compatibility issues</li>
+        </ul>
+        
+        <div style="margin-top: 30px;">
+            <a href="/admin-dashboard-clean.html" style="color: white; text-decoration: underline;">
+                ➡️ Go to Admin Dashboard
+            </a>
+        </div>
+    </div>
+
+    <script>
+        function checkTokens() {
+            const statusDiv = document.getElementById('status');
+            const token = localStorage.getItem('token');
+            const authToken = localStorage.getItem('authToken');
+            const userData = localStorage.getItem('userData');
+            
+            let statusHTML = '<strong>📊 Current Token Status:</strong><br>';
+            statusHTML += `• token: ${token ? '✅ Found' : '❌ Not found'}<br>`;
+            statusHTML += `• authToken: ${authToken ? '✅ Found' : '❌ Not found'}<br>`;
+            statusHTML += `• userData: ${userData ? '✅ Found' : '❌ Not found'}<br>`;
+            
+            if (token && authToken) {
+                statusHTML += '<br>🔄 <strong>Migration recommended</strong> - Multiple token types detected';
+            } else if (token && !authToken) {
+                statusHTML += '<br>✅ <strong>Already standardized</strong> - Only using "token"';
+            } else if (!token && authToken) {
+                statusHTML += '<br>⚠️ <strong>Migration needed</strong> - Using old "authToken"';
+            } else {
+                statusHTML += '<br>❌ <strong>No tokens found</strong> - Please log in first';
+            }
+            
+            statusDiv.innerHTML = statusHTML;
+        }
+        
+        function migrateTokens() {
+            const statusDiv = document.getElementById('status');
+            const token = localStorage.getItem('token');
+            const authToken = localStorage.getItem('authToken');
+            
+            if (authToken && !token) {
+                // Migrate authToken to token
+                localStorage.setItem('token', authToken);
+                localStorage.removeItem('authToken');
+                statusDiv.innerHTML = '✅ <strong>Migration completed!</strong><br>Moved authToken → token';
+            } else if (authToken && token) {
+                // Remove duplicate authToken
+                localStorage.removeItem('authToken');
+                statusDiv.innerHTML = '✅ <strong>Cleanup completed!</strong><br>Removed duplicate authToken';
+            } else if (token && !authToken) {
+                statusDiv.innerHTML = '✅ <strong>Already standardized!</strong><br>Using single token type';
+            } else {
+                statusDiv.innerHTML = '❌ <strong>No tokens to migrate</strong><br>Please log in first';
+            }
+            
+            // Clean up any other old token variations
+            localStorage.removeItem('auth_token');
+            localStorage.removeItem('access_token');
+            localStorage.removeItem('authtoken');
+        }
+        
+        function clearAllTokens() {
+            localStorage.removeItem('token');
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('userData');
+            localStorage.removeItem('auth_token');
+            localStorage.removeItem('access_token');
+            localStorage.removeItem('authtoken');
+            
+            // Clear cookies too
+            document.cookie = 'token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+            document.cookie = 'authToken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+            document.cookie = 'userData=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+            
+            const statusDiv = document.getElementById('status');
+            statusDiv.innerHTML = '🧹 <strong>All tokens cleared!</strong><br>Please log in again through the main app';
+        }
+        
+        // Auto-check on page load
+        window.addEventListener('load', checkTokens);
+    </script>
+</body>
+</html>

@@ -107,8 +107,9 @@
 
     <script>
         // Simple auth checker that doesn't trigger errors
+        // STANDARDIZED: Get token from single source
         function getToken() {
-            return localStorage.getItem('authToken') || localStorage.getItem('token');
+            return localStorage.getItem('token');
         }
 
         async function checkAuth() {
@@ -221,7 +222,7 @@
         }
 
         function clearAuth() {
-            localStorage.removeItem('authToken');
+            // STANDARDIZED: Remove only 'token' key
             localStorage.removeItem('token');
             localStorage.removeItem('userData');
             document.getElementById('auth-status-display').className = 'auth-status auth-warning';

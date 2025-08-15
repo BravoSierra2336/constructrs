@@ -94,3 +94,39 @@ $RECYCLE.BIN/
 
 # Runtime files
 *.lock
+
+# Test files and debugging utilities
+test-*.js
+**/test-*.js
+verify-*.js
+**/verify-*.js
+examine-*.js
+**/examine-*.js
+*debug*.js
+**/*debug*.js
+jwt-auth-manager.html
+**/jwt-auth-manager.html
+test.html
+**/test.html
+
+# Backup files
+*.backup
+*.backup.*
+**/*.backup
+**/*.backup.*
+
+# Debug and setup files
+WEATHER_API_SETUP.md
+**/WEATHER_API_SETUP.md
+
+# Deploy and build scripts (temporary)
+deploy-weather-fix.sh
+start-client.bat
+
+# Generated reports and uploads
+generated-reports/
+deleted-reports/
+uploads/
+**/generated-reports/
+**/deleted-reports/
+**/uploads/

@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            background: #f5f7fa; 
+            color: #333; 
+            line-height: 1.6; 
+        }
+        .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+        .header { 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+            color: white; 
+            padding: 30px; 
+            border-radius: 10px; 
+            margin-bottom: 30px; 
+            text-align: center;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        .status-card {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            text-align: center;
+            margin: 20px 0;
+        }
+        .btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 10px;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+        }
+        .btn:hover { background: #556de8; }
+        .btn-success { background: #28a745; }
+        .btn-success:hover { background: #218838; }
+        .btn-danger { background: #dc3545; }
+        .btn-danger:hover { background: #c82333; }
+        .auth-status {
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            text-align: center;
+        }
+        .auth-success { background: #d4edda; color: #155724; }
+        .auth-warning { background: #fff3cd; color: #856404; }
+        .auth-info { background: #d1ecf1; color: #0c5460; }
+        .reports-section {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            margin: 20px 0;
+        }
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🏗️ Admin Dashboard</h1>
+            <p>Construction Reports Management</p>
+        </div>
+
+        <div class="status-card">
+            <h2>🔐 Authentication Status</h2>
+            <div id="auth-status" class="auth-status auth-info">
+                ⏳ Ready to check authentication
+            </div>
+            
+            <button class="btn btn-success" onclick="checkAuth()">Check Authentication</button>
+            <button class="btn" onclick="clearAuth()">Clear Auth Data</button>
+        </div>
+
+        <div id="reports-section" class="reports-section hidden">
+            <h3>📋 Reports Management</h3>
+            <div id="reports-list">
+                <p>Click "Load Reports" to view construction reports.</p>
+            </div>
+            <button class="btn btn-success" onclick="loadReports()">Load Reports</button>
+        </div>
+
+        <div class="status-card">
+            <h3>🔧 Quick Actions</h3>
+            <a href="/" class="btn">🏠 Main App</a>
+            <a href="/token-migration.html" class="btn">🔄 Token Migration</a>
+            <a href="/admin-auth-debug.html" class="btn">🔍 Debug Tool</a>
+        </div>
+    </div>
+
+    <script>
+        // No automatic API calls - everything is manual
+        
+        // STANDARDIZED: Get token from single source
+        function getToken() {
+            return localStorage.getItem('token');
+        }
+
+        function checkAuth() {
+            const statusDiv = document.getElementById('auth-status');
+            const reportsSection = document.getElementById('reports-section');
+            const token = getToken();
+            
+            if (!token) {
+                statusDiv.className = 'auth-status auth-warning';
+                statusDiv.innerHTML = '⚠️ No authentication token found<br><small>Please log in through the main app first</small>';
+                reportsSection.classList.add('hidden');
+                return;
+            }
+
+            // Token found - show success without making API calls
+            statusDiv.className = 'auth-status auth-success';
+            statusDiv.innerHTML = '✅ Authentication token found<br><small>You can now load reports</small>';
+            reportsSection.classList.remove('hidden');
+        }
+
+        function clearAuth() {
+            // STANDARDIZED: Remove only 'token' key
+            localStorage.removeItem('token');
+            
+            const statusDiv = document.getElementById('auth-status');
+            const reportsSection = document.getElementById('reports-section');
+            
+            statusDiv.className = 'auth-status auth-info';
+            statusDiv.innerHTML = '🔄 Authentication data cleared<br><small>Please log in again</small>';
+            reportsSection.classList.add('hidden');
+        }
+
+        function loadReports() {
+            const reportsDiv = document.getElementById('reports-list');
+            const token = getToken();
+            
+            if (!token) {
+                reportsDiv.innerHTML = '<p style="color: #856404;">⚠️ Please check authentication first</p>';
+                return;
+            }
+
+            reportsDiv.innerHTML = '<p>🔄 Loading reports...</p>';
+            
+            // Make the API call only when explicitly requested
+            fetch('/admin/reports', {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => {
+                if (response.ok) {
+                    return response.json();
+                } else {
+                    throw new Error(`Server responded with status ${response.status}`);
+                }
+            })
+            .then(data => {
+                displayReports(data.reports);
+            })
+            .catch(error => {
+                reportsDiv.innerHTML = '<p style="color: #856404;">Unable to load reports. Please check your authentication and try again.</p>';
+            });
+        }
+
+        function displayReports(reports) {
+            const reportsDiv = document.getElementById('reports-list');
+            
+            if (!reports || reports.length === 0) {
+                reportsDiv.innerHTML = '<p>No reports found.</p>';
+                return;
+            }
+
+            let html = '<h4>📄 Available Reports:</h4><ul>';
+            reports.forEach(report => {
+                const title = report.title || 'Untitled';
+                const date = new Date(report.createdAt).toLocaleDateString();
+                const pdfStatus = report.pdfExists ? '✅ PDF Available' : '❌ No PDF';
+                
+                html += `<li><strong>${title}</strong> - ${date} - ${pdfStatus}`;
+                if (report.pdfExists) {
+                    html += ` <a href="/admin/reports/${report._id}/download?token=${getToken()}" target="_blank" style="color: #667eea;">[Download]</a>`;
+                }
+                html += '</li>';
+            });
+            html += '</ul>';
+            
+            reportsDiv.innerHTML = html;
+        }
+    </script>
+</body>
+</html>

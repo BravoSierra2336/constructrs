@@ -8,7 +8,7 @@ const jwt = require("jsonwebtoken");
 // Secret key for JWT - in production, use environment variables
 const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key-change-in-production";
 
-// Middleware to verify JWT token
+// Middleware to verify JWT token - STANDARDIZED to use 'token' only
 export const authenticateToken = (req, res, next) => {
   console.log('🔍 authenticateToken middleware called');
   console.log('📝 Request headers:', req.headers);
@@ -37,7 +37,7 @@ export const authenticateToken = (req, res, next) => {
   });
 };
 
-// Generate JWT token
+// Generate JWT token - STANDARDIZED
 export const generateToken = (user) => {
   const payload = {
     id: user._id ? user._id.toString() : user.id, // Ensure ID is a string
@@ -52,7 +52,7 @@ export const generateToken = (user) => {
   return jwt.sign(payload, JWT_SECRET, { expiresIn: "24h" });
 };
 
-// Middleware to check if user is admin
+// Middleware to check if user is admin - STANDARDIZED
 export const requireAdmin = async (req, res, next) => {
   try {
     // First check if user is authenticated
@@ -84,7 +84,7 @@ export const requireAdmin = async (req, res, next) => {
   }
 };
 
-// Middleware to check if user is admin OR the user themselves
+// Middleware to check if user is admin OR the user themselves - STANDARDIZED
 export const requireAdminOrSelf = async (req, res, next) => {
   try {
     // First check if user is authenticated

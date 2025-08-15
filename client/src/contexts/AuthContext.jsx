@@ -29,8 +29,8 @@ export const AuthProvider = ({ children }) => {
   const checkAuthStatus = async () => {
     console.log('🔍 Checking auth status...');
     try {
-      // First check localStorage for both token keys
-      const token = localStorage.getItem('token') || localStorage.getItem('authToken');
+      // STANDARDIZED: Only check for 'token' in localStorage
+      const token = localStorage.getItem('token');
       const userData = localStorage.getItem('userData');
       
       console.log('📦 localStorage check:', { 
@@ -85,7 +85,6 @@ export const AuthProvider = ({ children }) => {
           console.error('❌ Error parsing user data or token verification failed:', error);
           localStorage.removeItem('userData');
           localStorage.removeItem('token');
-          localStorage.removeItem('authToken');
         }
       }
 
@@ -215,9 +214,8 @@ export const AuthProvider = ({ children }) => {
           role: normalizedUser.role
         });
 
-        // Store token under both keys for compatibility with admin panel
+        // STANDARDIZED: Store only under 'token' key
         localStorage.setItem('token', token);
-        localStorage.setItem('authToken', token); // For admin panel compatibility
         localStorage.setItem('userData', JSON.stringify(normalizedUser));
         setUser(normalizedUser);
         
@@ -232,14 +230,12 @@ export const AuthProvider = ({ children }) => {
 
   const logout = () => {
     console.log('🚪 Logging out...');
-    // Remove both token keys for compatibility
+    // STANDARDIZED: Remove only 'token' key
     localStorage.removeItem('token');
-    localStorage.removeItem('authToken');
     localStorage.removeItem('userData');
     
-    // Clear cookies (both old and new names to be safe)
+    // Clear cookies (standardized)
     document.cookie = 'token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-    document.cookie = 'authToken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
     document.cookie = 'userData=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
     
     setUser(null);
