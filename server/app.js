@@ -14,8 +14,9 @@ import { getDatabase } from './db/connection.js';
 const require = createRequire(import.meta.url);
 const express = require("express");
 const cors = require("cors");
-const session = require("express-session");
-const MongoStore = require("connect-mongo");
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
+// Sessions removed (stateless JWT)
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -23,40 +24,58 @@ const __dirname = path.dirname(__filename);
 const app = express();
 
 // Middleware
-app.use(cors({
-  origin: ['http://localhost:3000', 'http://localhost:5173', 'http://localhost:5050'],
+app.use(helmet({
+  crossOriginResourcePolicy: false
+}));
+const isProd = process.env.NODE_ENV === 'production';
+const defaultProdOrigin = process.env.FRONTEND_URL || 'https://constructrs.onrender.com';
+
+const corsOptions = {
+  origin: (origin, callback) => {
+    // Allow same-origin or non-browser requests
+    if (!origin) return callback(null, true);
+
+    try {
+      const url = new URL(origin);
+      // Allow any localhost/127.0.0.1 port in development
+      if (!isProd && (url.hostname === 'localhost' || url.hostname === '127.0.0.1')) {
+        return callback(null, true);
+      }
+    } catch (e) {
+      // If origin isn't a valid URL, deny explicitly
+      return callback(new Error('Not allowed by CORS'));
+    }
+
+    // In production, allow only the configured frontend URL
+    if (isProd && origin === defaultProdOrigin) {
+      return callback(null, true);
+    }
+
+    return callback(new Error('Not allowed by CORS'));
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
-}));
+};
+
+app.use(cors(corsOptions));
+// Explicitly handle preflight
+app.options('*', cors(corsOptions));
 app.use(express.json());
 app.use(express.static("public")); // Serve static files from public directory
 
 // Serve React build files
 app.use(express.static(path.join(__dirname, '../client/dist')));
 
-// Session middleware (required for Passport)
-app.use(session({
-  secret: process.env.SESSION_SECRET || "your-session-secret-change-in-production",
-  resave: false,
-  saveUninitialized: false,
-  store: MongoStore.create({
-    mongoUrl: process.env.ATLAS_URI,
-    dbName: 'Construction',
-    collectionName: 'sessions',
-    touchAfter: 24 * 3600, // Lazy session update (24 hours)
-    autoRemove: 'native', // Default
-    autoRemoveInterval: 10 // In minutes
-  }),
-  cookie: {
-    secure: process.env.NODE_ENV === "production", // Use secure cookies in production
-    maxAge: 24 * 60 * 60 * 1000 // 24 hours
-  }
-}));
+// Basic rate limiting for auth and login-related routes
+const authLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 100 });
+app.use(['/auth', '/login', '/register'], authLimiter);
 
-// Passport middleware
+// NOTE: Sessions are disabled to keep the app stateless with JWT. If you
+// restore Microsoft OAuth sessions, re-enable this block.
+
+// Passport middleware (stateless)
 app.use(passport.initialize());
-app.use(passport.session());
 
 // Routes
 app.use("/reports", reports);
@@ -67,9 +86,24 @@ app.use("/projects", projects);
 app.use("/admin", admin);
 app.use("/weather", weather);
 
-// Serve React app for non-API routes (must be after API routes)
-app.get("*", (req, res) => {
-  res.sendFile(path.join(__dirname, '../client/dist/index.html'));
+// 404 for API routes
+app.use(['/auth', '/users', '/reports', '/projects', '/admin', '/weather', '/ai'], (req, res) => {
+  if (!res.headersSent) {
+    res.status(404).json({ error: 'Not found' });
+  }
+});
+
+// Health check
+app.get('/healthz', (req, res) => {
+  res.json({ status: 'ok', uptime: process.uptime(), timestamp: Date.now() });
+});
+
+// SPA fallback for client-side routing (only if index exists)
+app.get('*', (req, res, next) => {
+  const indexPath = path.join(__dirname, '../client/dist/index.html');
+  res.sendFile(indexPath, (err) => {
+    if (err) next();
+  });
 });
 
 // Error handling middleware

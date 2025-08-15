@@ -33,6 +33,10 @@ export default defineConfig({
         target: 'http://localhost:5050',
         changeOrigin: true
       },
+      '/weather': {
+        target: 'http://localhost:5050',
+        changeOrigin: true
+      },
       '/ai': {
         target: 'http://localhost:5050',
         changeOrigin: true

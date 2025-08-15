@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext.jsx';
-import axios from 'axios';
+import api from '../utils/api.js';
 import './AdminDashboard.css';
 
 const AdminDashboard = () => {
@@ -40,7 +40,7 @@ const AdminDashboard = () => {
       
       // First check if user has admin access
       try {
-        const accessCheck = await axios.get('/admin/check-access');
+  const accessCheck = await api.get('/admin/check-access');
         console.log('Admin access check:', accessCheck.data);
         
         if (!accessCheck.data.hasAdminAccess) {
@@ -55,7 +55,7 @@ const AdminDashboard = () => {
         }
       }
 
-      const response = await axios.get('/admin/reports');
+  const response = await api.get('/admin/reports');
       const reportsData = response.data.reports || [];
       setReports(reportsData);
       
@@ -81,7 +81,7 @@ const AdminDashboard = () => {
 
   const loadStats = async () => {
     try {
-      const response = await axios.get('/admin/reports/stats');
+  const response = await api.get('/admin/reports/stats');
       setStats(response.data.stats);
     } catch (error) {
       console.error('Error loading stats:', error);
@@ -132,7 +132,7 @@ const AdminDashboard = () => {
     }
 
     try {
-      const response = await axios.post('/admin/reports/bulk-download', {
+  const response = await api.post('/admin/reports/bulk-download', {
         reportIds: selectedReports
       });
 
@@ -163,7 +163,7 @@ const AdminDashboard = () => {
     }
 
     try {
-      const response = await axios.delete('/admin/reports/bulk', {
+  const response = await api.delete('/admin/reports/bulk', {
         data: { reportIds: selectedReports }
       });
 
@@ -192,7 +192,7 @@ const AdminDashboard = () => {
     }
 
     try {
-      const response = await axios.delete('/admin/reports/all');
+  const response = await api.delete('/admin/reports/all');
       setSuccess(`Successfully deleted all ${response.data.deletedReports} reports and moved ${response.data.movedPDFs} PDFs to backup folder`);
       setSelectedReports([]);
       loadReports();
@@ -208,7 +208,7 @@ const AdminDashboard = () => {
     }
 
     try {
-      await axios.delete(`/admin/reports/${reportId}`);
+  await api.delete(`/admin/reports/${reportId}`);
       setSuccess('Report deleted successfully and PDF moved to backup folder');
       loadReports();
       loadStats();

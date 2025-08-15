@@ -1,7 +1,8 @@
 import axios from 'axios';
 
 // Configure axios defaults
-const API_BASE_URL = import.meta.env.PROD ? 'https://constructrs.onrender.com' : 'http://localhost:5050';
+// In development, use same-origin ('') so Vite proxy handles API calls and avoids CORS.
+const API_BASE_URL = import.meta.env.PROD ? 'https://constructrs.onrender.com' : '';
 
 // Create axios instance with default config
 const api = axios.create({

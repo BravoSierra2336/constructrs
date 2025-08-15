@@ -10,14 +10,19 @@ const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key-change-in-producti
 
 // Middleware to verify JWT token - STANDARDIZED to use 'token' only
 export const authenticateToken = (req, res, next) => {
-  console.log('🔍 authenticateToken middleware called');
-  console.log('📝 Request headers:', req.headers);
-  
+  const isProd = process.env.NODE_ENV === 'production';
+  if (!isProd) {
+    console.log('🔍 authenticateToken middleware called');
+    console.log('📝 Request headers:', req.headers);
+  }
   const authHeader = req.headers.authorization;
-  console.log('🔑 Auth header:', authHeader);
-  
+  if (!isProd) {
+    console.log('🔑 Auth header:', authHeader);
+  }
   const token = authHeader && authHeader.split(" ")[1]; // Bearer TOKEN
-  console.log('🎫 Extracted token:', token ? token.substring(0, 20) + '...' : 'No token');
+  if (!isProd) {
+    console.log('🎫 Extracted token:', token ? token.substring(0, 20) + '...' : 'No token');
+  }
 
   if (!token) {
     console.log('❌ No token provided');
@@ -26,12 +31,13 @@ export const authenticateToken = (req, res, next) => {
 
   jwt.verify(token, JWT_SECRET, (err, user) => {
     if (err) {
-      console.log('❌ Token verification failed:', err.message);
+      if (!isProd) console.log('❌ Token verification failed:', err.message);
       return res.status(403).json({ error: "Invalid or expired token" });
     }
-    
-    console.log('✅ Token verified for user:', user.email);
-    console.log('🔍 User ID from token:', user.id);
+    if (!isProd) {
+      console.log('✅ Token verified for user:', user.email);
+      console.log('🔍 User ID from token:', user.id);
+    }
     req.user = user;
     next();
   });

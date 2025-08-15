@@ -128,15 +128,27 @@ router.post("/", authenticateToken, async (req, res) => {
         console.log('POST /reports called by user:', req.user);
         console.log('Request body:', req.body);
         
-        // Create the report document
+        // Create the report document (capture all fields used by PDF)
         let newDocument = {
             title: req.body.title,
             content: req.body.content,
             author: req.body.author,
             jobname: req.body.jobname,
             jobid: req.body.jobid,
-            projectId: req.body.projectId, // Add project ID reference
-            inspectorId: req.body.inspectorId, // Add inspector ID reference
+            projectId: req.body.projectId,
+            inspectorId: req.body.inspectorId,
+            // Additional report fields
+            inspectionType: req.body.inspectionType,
+            findings: req.body.findings,
+            recommendations: req.body.recommendations,
+            status: req.body.status || 'pending',
+            laborBreakdownTitle: req.body.laborBreakdownTitle || 'Labor Breakdown',
+            laborBreakdown: Array.isArray(req.body.laborBreakdown) ? req.body.laborBreakdown : [],
+            equipmentBreakdownTitle: req.body.equipmentBreakdownTitle || 'Equipment Breakdown',
+            equipmentBreakdown: Array.isArray(req.body.equipmentBreakdown) ? req.body.equipmentBreakdown : [],
+            weather: req.body.weather || null,
+            contractDay: req.body.contractDay,
+            isDraft: false,
             createdAt: new Date(),
         };
 

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../utils/api.js';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext.jsx';
 import '../styles/ModernInputs.css';
@@ -39,15 +39,11 @@ const EditReport = () => {
     const loadData = async () => {
       try {
         // Load projects
-        const projectsResponse = await axios.get('/api/projects', {
-          headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-        });
+  const projectsResponse = await api.get('/projects');
         setProjects(projectsResponse.data.projects || []);
 
         // Load existing report
-        const reportResponse = await axios.get(`/api/reports/${id}`, {
-          headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-        });
+  const reportResponse = await api.get(`/reports/${id}`);
         
         const report = reportResponse.data;
         
@@ -161,12 +157,7 @@ const EditReport = () => {
     setSuccessMessage('');
 
     try {
-      const response = await axios.put(`/api/reports/${id}`, formData, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
-          'Content-Type': 'application/json'
-        }
-      });
+  const response = await api.put(`/reports/${id}`, formData);
 
       setSuccessMessage('Report updated successfully! A new PDF has been generated.');
       setTimeout(() => {

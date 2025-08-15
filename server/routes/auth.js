@@ -60,21 +60,39 @@ router.post("/login", async (req, res) => {
         error: "Email and password are required" 
       });
     }
-    
-    // Authenticate user
-    const user = await User.authenticate(email, password);
-    
-    if (!user) {
-      return res.status(401).json({ 
-        error: "Invalid email or password" 
+
+    // Look up user first to avoid hashing against undefined passwords
+    const existing = await User.findByEmail(email);
+    if (!existing) {
+      return res.status(401).json({ error: "Invalid email or password" });
+    }
+
+    // If the account is OAuth-based, block local password login with a clear message
+    if (existing.authProvider && existing.authProvider !== 'local') {
+      return res.status(400).json({ 
+        error: "This account uses Microsoft login. Please sign in with Microsoft." 
       });
     }
-    
+
+    // If no password is set, return a controlled error
+    if (!existing.password) {
+      return res.status(400).json({ 
+        error: "Password is not set for this account. Please use Microsoft login or contact support." 
+      });
+    }
+
+    // Verify password
+    const userInstance = new User(existing);
+    const isMatch = await userInstance.comparePassword(password);
+    if (!isMatch) {
+      return res.status(401).json({ error: "Invalid email or password" });
+    }
+
     // Generate JWT token
-    const token = generateToken(user);
+    const token = generateToken(existing);
     
     // Remove password from response and normalize user object
-    const { password: _, ...userWithoutPassword } = user;
+    const { password: _removed, ...userWithoutPassword } = existing;
     
     // Normalize user object for frontend compatibility
     const normalizedUser = {
@@ -86,11 +104,11 @@ router.post("/login", async (req, res) => {
     res.status(200).json({
       message: "Login successful",
       user: normalizedUser,
-      token: token
+      token
     });
   } catch (error) {
     console.error("Error logging in:", error);
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: "Internal server error" });
   }
 });
 
@@ -288,7 +306,8 @@ router.get("/microsoft", (req, res, next) => {
   });
   next();
 }, passport.authenticate("microsoft", {
-  scope: ["user.read"]
+  scope: ["user.read"],
+  session: false
 }));
 
 // GET /auth/microsoft/callback - Handle Microsoft OAuth callback
@@ -306,7 +325,8 @@ router.get("/microsoft/callback",
   passport.authenticate("microsoft", { 
     failureRedirect: process.env.NODE_ENV === 'production' 
       ? "https://constructrs.onrender.com/login?error=oauth_failed"
-      : "http://localhost:5173/login?error=oauth_failed" 
+      : "http://localhost:5173/login?error=oauth_failed",
+    session: false
   }),
   async (req, res) => {
     try {

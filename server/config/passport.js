@@ -67,19 +67,6 @@ passport.use(
   )
 );
 
-// Serialize user for session
-passport.serializeUser((user, done) => {
-  done(null, user._id);
-});
-
-// Deserialize user from session
-passport.deserializeUser(async (id, done) => {
-  try {
-    const user = await User.findById(id);
-    done(null, user);
-  } catch (error) {
-    done(error, null);
-  }
-});
+// Stateless: no session serialize/deserialize
 
 export default passport;

@@ -381,6 +381,20 @@ class EnhancedPDFReportGenerator {
       yPos += 20;
     }
 
+    // Labor Breakdown
+    if (Array.isArray(reportData.laborBreakdown) && reportData.laborBreakdown.length > 0) {
+      if (yPos > 600) { doc.addPage(); yPos = 60; }
+      yPos = this.addTableSection(doc, reportData.laborBreakdownTitle || 'Labor Breakdown', ['Position', 'Quantity', 'Hours'], reportData.laborBreakdown.map(r => [r.position||'', r.quantity||'', r.hours||'']), yPos);
+      yPos += 20;
+    }
+
+    // Equipment Breakdown
+    if (Array.isArray(reportData.equipmentBreakdown) && reportData.equipmentBreakdown.length > 0) {
+      if (yPos > 600) { doc.addPage(); yPos = 60; }
+      yPos = this.addTableSection(doc, reportData.equipmentBreakdownTitle || 'Equipment Breakdown', ['Equipment', 'Quantity', 'Hours'], reportData.equipmentBreakdown.map(r => [r.equipment||'', r.quantity||'', r.hours||'']), yPos);
+      yPos += 20;
+    }
+
     // Additional report fields section
     this.addAdditionalReportFields(doc, reportData, yPos);
   }
@@ -417,14 +431,20 @@ class EnhancedPDFReportGenerator {
     
     yPos += 25;
     
-    // Weather info in clean table format
+    // Support both flat and nested weather structures
+    const current = weatherData.current || weatherData;
+    const location = weatherData.location || weatherData.place || '';
+    const lastUpdated = weatherData.lastUpdated ? new Date(weatherData.lastUpdated).toLocaleString() : '';
+
     const weatherInfo = [
-      ['Temperature:', weatherData.temperature ? `${weatherData.temperature}°F` : 'N/A'],
-      ['Conditions:', weatherData.description || 'N/A'],
-      ['Humidity:', weatherData.humidity ? `${weatherData.humidity}%` : 'N/A'],
-      ['Wind Speed:', weatherData.windSpeed ? `${weatherData.windSpeed} mph` : 'N/A'],
-      ['Wind Direction:', weatherData.windDirection || 'N/A'],
-      ['Pressure:', weatherData.pressure ? `${weatherData.pressure} inHg` : 'N/A']
+      ['Location:', location || 'N/A'],
+      ['Observed:', lastUpdated || 'N/A'],
+      ['Temperature:', current.temperature != null ? `${current.temperature}°F` : 'N/A'],
+      ['Conditions:', current.description || current.conditions || 'N/A'],
+      ['Humidity:', current.humidity != null ? `${current.humidity}%` : 'N/A'],
+      ['Wind Speed:', current.windSpeed != null ? `${current.windSpeed} mph` : 'N/A'],
+      ['Wind Direction:', current.windDirection || 'N/A'],
+      ['Pressure:', current.pressure != null ? `${current.pressure} inHg` : 'N/A']
     ];
     
     weatherInfo.forEach(([label, value]) => {
@@ -438,7 +458,53 @@ class EnhancedPDFReportGenerator {
       yPos += 18;
     });
     
-    return yPos + 20;
+    yPos += 20;
+
+    // 24-hour forecast summary, if available
+    if (Array.isArray(weatherData.forecast24h) && weatherData.forecast24h.length > 0) {
+      if (yPos > 600) { doc.addPage(); yPos = 60; }
+      doc.fontSize(12).fillColor('#495057').font('Helvetica-Bold').text('24-Hour Forecast (summary)', 40, yPos);
+      yPos += 18;
+      const preview = weatherData.forecast24h.slice(0, 6); // show first 6 entries
+      preview.forEach((f, idx) => {
+        const line = `${f.time || f.hour || idx}: ${f.temperature != null ? f.temperature + '°F' : ''} ${f.description || f.conditions || ''}`.trim();
+        doc.fontSize(10).fillColor('#212529').font('Helvetica').text(line, 60, yPos);
+        yPos += 14;
+        if (yPos > 720) { doc.addPage(); yPos = 60; }
+      });
+      yPos += 10;
+    }
+
+    return yPos;
+  }
+
+  addTableSection(doc, title, headers, rows, yPos) {
+    // Title
+    doc.fontSize(14).fillColor('#495057').font('Helvetica-Bold').text(title, 40, yPos);
+    yPos += 18;
+
+    // Header Row
+    doc.fontSize(11).fillColor('#343a40').font('Helvetica-Bold');
+    const colWidth = 160; // 3 columns layout
+    headers.forEach((h, i) => {
+      doc.text(h, 60 + i * colWidth, yPos, { width: colWidth - 20 });
+    });
+    yPos += 14;
+    doc.moveTo(40, yPos).lineTo(572, yPos).lineWidth(1).strokeColor('#dee2e6').stroke();
+    yPos += 6;
+
+    // Rows
+    doc.font('Helvetica').fontSize(10).fillColor('#212529');
+    rows.forEach((r) => {
+      if (yPos > 720) { doc.addPage(); yPos = 60; }
+      r.forEach((cell, i) => {
+        const val = (cell ?? '').toString();
+        doc.text(val, 60 + i * colWidth, yPos, { width: colWidth - 20 });
+      });
+      yPos += 14;
+    });
+
+    return yPos;
   }
 
   addAdditionalReportFields(doc, reportData, yPos) {

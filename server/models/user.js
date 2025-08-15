@@ -89,7 +89,14 @@ class User {
 
   // Compare password
   async comparePassword(plainPassword) {
-    return await bcrypt.compare(plainPassword, this.password);
+    try {
+      if (!this.password || typeof this.password !== 'string') return false;
+      return await bcrypt.compare(plainPassword, this.password);
+    } catch (err) {
+      // Handle legacy/plaintext or malformed stored passwords gracefully
+      console.warn('Password compare failed (likely legacy hash/plaintext):', err.message);
+      return false;
+    }
   }
 
   // Static method to authenticate user

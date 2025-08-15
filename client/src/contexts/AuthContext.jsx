@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../utils/api.js';
 
 const AuthContext = createContext();
 
@@ -70,7 +70,7 @@ export const AuthProvider = ({ children }) => {
           // Verify token with server before trusting local data
           console.log('🔑 Verifying token with server...');
           const apiUrl = getApiUrl();
-          const response = await axios.get(`${apiUrl}/auth/me`, {
+          const response = await api.get('/auth/me', {
             headers: { Authorization: `Bearer ${token}` }
           });
 
@@ -121,7 +121,7 @@ export const AuthProvider = ({ children }) => {
           // Verify token with server
           console.log('🔑 Verifying cookie token with server...');
           const apiUrl = getApiUrl();
-          const response = await axios.get(`${apiUrl}/auth/me`, {
+          const response = await api.get('/auth/me', {
             headers: { Authorization: `Bearer ${cookieToken}` }
           });
 
@@ -179,8 +179,7 @@ export const AuthProvider = ({ children }) => {
     try {
       const apiUrl = getApiUrl();
       console.log('🔐 Attempting login with:', { email, apiUrl });
-      
-      const response = await axios.post(`${apiUrl}/auth/login`, {
+  const response = await api.post('/auth/login', {
         email,
         password
       });
@@ -246,8 +245,7 @@ export const AuthProvider = ({ children }) => {
     try {
       const apiUrl = getApiUrl();
       console.log('📝 Attempting registration with:', { ...userData, password: '[HIDDEN]' });
-      
-      const response = await axios.post(`${apiUrl}/auth/register`, userData);
+  const response = await api.post('/auth/register', userData);
       
       console.log('📬 Registration response:', response.data);
       return response.data;
@@ -307,8 +305,7 @@ export const AuthProvider = ({ children }) => {
 
       const apiUrl = getApiUrl();
       console.log('   Making request to:', `${apiUrl}/users/profile-photo`);
-      
-      const response = await axios.get(`${apiUrl}/users/profile-photo`, {
+  const response = await api.get('/users/profile-photo', {
         headers: { Authorization: `Bearer ${token}` }
       });
 

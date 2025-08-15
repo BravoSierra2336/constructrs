@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext.jsx';
-import axios from 'axios';
+import api from '../utils/api.js';
 
 const CreateReport = () => {
   const { user } = useAuth();
@@ -60,12 +60,7 @@ const CreateReport = () => {
         return;
       }
 
-      const response = await axios.get(`${getApiUrl()}/projects`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
+  const response = await api.get(`/projects`);
       setProjects(response.data.projects || []);
     } catch (error) {
       console.error('Error fetching projects:', error);
@@ -118,12 +113,7 @@ const CreateReport = () => {
       }
 
       const encodedLocation = encodeURIComponent(location.trim());
-      const response = await axios.get(`${getApiUrl()}/weather/complete/${encodedLocation}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
+  const response = await api.get(`/weather/complete/${encodedLocation}`);
 
       if (response.data.success) {
         setFormData(prev => ({
@@ -304,12 +294,7 @@ const CreateReport = () => {
         return;
       }
 
-      const response = await axios.post(`${getApiUrl()}/reports`, reportData, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
+  const response = await api.post(`/reports`, reportData);
       console.log('Server response:', response.data);
       if (response.data.success) {
         setSuccess('Report created successfully! PDF is being generated...');
@@ -371,12 +356,7 @@ const CreateReport = () => {
         return;
       }
 
-      const response = await axios.post(`${getApiUrl()}/reports/draft`, draftData, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
+  const response = await api.post(`/reports/draft`, draftData);
       console.log('Draft save response:', response.data);
       
       if (response.data.success) {
