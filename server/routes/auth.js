@@ -100,6 +100,15 @@ router.post("/login", async (req, res) => {
       id: userWithoutPassword._id || userWithoutPassword.id, // Ensure id field exists
       _id: userWithoutPassword._id || userWithoutPassword.id // Ensure _id field exists
     };
+    // Log successful local login
+    try {
+      console.log('✅ Login (local)', {
+        userId: normalizedUser._id || normalizedUser.id,
+        email: normalizedUser.email,
+        ip: req.ip,
+        time: new Date().toISOString()
+      });
+    } catch {}
     
     res.status(200).json({
       message: "Login successful",
@@ -342,6 +351,15 @@ router.get("/microsoft/callback",
         id: userWithoutSecrets._id || userWithoutSecrets.id, // Ensure id field exists
         _id: userWithoutSecrets._id || userWithoutSecrets.id // Ensure _id field exists
       };
+      // Log successful Microsoft OAuth login
+      try {
+        console.log('✅ Login (microsoft-oauth)', {
+          userId: normalizedUser._id || normalizedUser.id,
+          email: normalizedUser.email,
+          ip: req.ip,
+          time: new Date().toISOString()
+        });
+      } catch {}
       
       console.log('OAuth Callback - User object structure:', {
         hasId: !!normalizedUser.id,
@@ -470,6 +488,15 @@ router.post("/microsoft/token", async (req, res) => {
       id: userWithoutSecrets._id || userWithoutSecrets.id, // Ensure id field exists
       _id: userWithoutSecrets._id || userWithoutSecrets.id // Ensure _id field exists
     };
+    // Log successful Microsoft token exchange login
+    try {
+      console.log('✅ Login (microsoft-token-exchange)', {
+        userId: normalizedUser._id || normalizedUser.id,
+        email: normalizedUser.email,
+        ip: req.ip,
+        time: new Date().toISOString()
+      });
+    } catch {}
     
     res.json({
       message: "Microsoft token exchange successful",
