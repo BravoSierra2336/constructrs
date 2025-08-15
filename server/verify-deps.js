@@ -24,7 +24,6 @@ const requiredPackages = [
   'passport-microsoft',
   'openai',
   'dotenv',
-  'express-session',
   'canvas',
   'fontkit'
 ];
