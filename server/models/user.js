@@ -29,7 +29,8 @@ class User {
     this.password = password;
     this.jobName = jobName;
     this.isAdmin = isAdmin;
-    this.role = role; // "admin", "project_manager", "supervisor", "inspector", "employee"
+  // Normalize role (lowercase, spaces/dashes -> underscore)
+  this.role = (role || 'employee').toString().toLowerCase().replace(/[\s-]+/g, '_'); // "admin", "project_manager", etc.
     this.permissions = permissions; // Array of specific permissions
     this.microsoftId = microsoftId;
     this.microsoftAccessToken = microsoftAccessToken;
@@ -64,8 +65,8 @@ class User {
     }
 
     // Validate role
-    const validRoles = ["admin", "project_manager", "supervisor", "inspector", "employee"];
-    if (!validRoles.includes(this.role)) {
+  const validRoles = ["admin", "project_manager", "supervisor", "inspector", "employee"];
+  if (!validRoles.includes(this.role)) {
       errors.push("Invalid role specified");
     }
     
