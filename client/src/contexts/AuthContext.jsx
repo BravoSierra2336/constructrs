@@ -58,7 +58,8 @@ export const AuthProvider = ({ children }) => {
             ...parsedUser,
             id: userId,
             _id: userId,
-            email: userEmail 
+            email: userEmail,
+            role: (parsedUser.role || '').toLowerCase().replace(/[\s-]+/g, '_')
           };
 
           console.log('✅ Valid user from localStorage:', {
@@ -131,7 +132,8 @@ export const AuthProvider = ({ children }) => {
               ...parsedUser,
               id: userId,
               _id: userId,
-              email: userEmail 
+              email: userEmail,
+              role: (parsedUser.role || '').toLowerCase().replace(/[\s-]+/g, '_')
             };
 
             console.log('✅ Valid user from cookie:', {
@@ -204,7 +206,8 @@ export const AuthProvider = ({ children }) => {
           ...userData,
           id: userId,
           _id: userId,
-          email: userEmail 
+          email: userEmail,
+          role: (userData.role || '').toLowerCase().replace(/[\s-]+/g, '_')
         };
 
         console.log('✅ Login successful:', {
@@ -254,7 +257,7 @@ export const AuthProvider = ({ children }) => {
         if (!userId || !userEmail) {
           return { success: false, error: 'Invalid user data structure' };
         }
-        const normalizedUser = { ...user, id: userId, _id: userId, email: userEmail };
+  const normalizedUser = { ...user, id: userId, _id: userId, email: userEmail, role: (user.role || '').toLowerCase().replace(/[\s-]+/g, '_') };
         localStorage.setItem('token', token);
         localStorage.setItem('userData', JSON.stringify(normalizedUser));
         setUser(normalizedUser);
@@ -284,7 +287,8 @@ export const AuthProvider = ({ children }) => {
       ...updatedUser,
       id: userId,
       _id: userId,
-      email: userEmail 
+      email: userEmail,
+      role: (updatedUser.role || '').toLowerCase().replace(/[\s-]+/g, '_')
     };
 
     console.log('🔄 Updating user:', {

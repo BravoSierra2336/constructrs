@@ -51,7 +51,7 @@ export const generateToken = (user) => {
     email: user.email,
     firstName: user.firstName,
     lastName: user.lastName,
-    role: user.role,
+  role: user.role ? String(user.role).toLowerCase() : undefined,
     isAdmin: user.isAdmin
   };
   
@@ -260,21 +260,42 @@ export const requireRole = (allowedRoles) => {
         return res.status(401).json({ error: "User not found" });
       }
 
-      // Convert single role to array for easier checking
-      const rolesArray = Array.isArray(allowedRoles) ? allowedRoles : [allowedRoles];
-      
-      // Check if user's role is in the allowed roles
-      if (!rolesArray.includes(user.role)) {
+      // Convert single role to array for easier checking & normalize (lowercase, replace spaces/dashes)
+      const rolesArray = (Array.isArray(allowedRoles) ? allowedRoles : [allowedRoles])
+        .map(r => String(r).toLowerCase().replace(/[\s-]+/g, '_'));
+      let userRoleRaw = user.role || '';
+      let userRole = userRoleRaw.toString().toLowerCase().replace(/[\s-]+/g, '_');
+
+      // Auto-correct legacy stored role if normalization changed value
+      if (userRole !== userRoleRaw) {
+        try {
+          const usersCol = await User.getUsersCollection();
+          await usersCol.updateOne({ _id: user._id }, { $set: { role: userRole } });
+          console.log('[role-normalize] Updated user role from', userRoleRaw, 'to', userRole, 'for user', user._id?.toString());
+        } catch (e) {
+          console.warn('[role-normalize] Failed to persist normalized role:', e.message);
+        }
+      }
+
+    // If admin is allowed and user.isAdmin true, allow even if stored role casing differs
+    const isExplicitlyAllowedByAdminFlag = rolesArray.includes('admin') && user.isAdmin;
+
+      if (!isExplicitlyAllowedByAdminFlag && !rolesArray.includes(userRole)) {
+        console.warn('[requireRole] Deny. required=', rolesArray, 'userRole=', userRole, 'raw=', userRoleRaw, 'isAdmin=', user.isAdmin, 'userId=', user._id?.toString());
         return res.status(403).json({ 
           error: "Insufficient role permissions",
           required: rolesArray,
-          userRole: user.role
+      userRole: user.role,
+      isAdmin: user.isAdmin
         });
       }
 
       // Add user role to request for further use
-      req.user.role = user.role;
+    req.user.role = userRole;
       req.user.permissions = user.permissions;
+      if (process.env.NODE_ENV !== 'production') {
+        console.log('[requireRole] Allow. required=', rolesArray, 'userRole=', userRole, 'isAdmin=', user.isAdmin, 'userId=', user._id?.toString());
+      }
       
       next();
     } catch (error) {

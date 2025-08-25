@@ -58,7 +58,18 @@ router.get("/check-access", authenticateToken, async (req, res) => {
             return res.status(404).json({ error: "User not found" });
         }
 
-        const hasAdminAccess = ['admin', 'project_manager', 'supervisor'].includes(user.role);
+        const normalizedRole = (user.role || '').toString().toLowerCase().replace(/[\s-]+/g, '_');
+        if (normalizedRole !== user.role) {
+            try {
+                const usersCollection2 = database.collection("users");
+                await usersCollection2.updateOne({ _id: user._id }, { $set: { role: normalizedRole } });
+                console.log('[admin/check-access] Normalized role', user.role, '->', normalizedRole, 'for user', user._id.toString());
+                user.role = normalizedRole;
+            } catch (e) {
+                console.warn('[admin/check-access] Failed to persist normalized role:', e.message);
+            }
+        }
+        const hasAdminAccess = ['admin', 'project_manager', 'supervisor'].includes(normalizedRole);
 
         res.json({
             success: true,
@@ -67,10 +78,10 @@ router.get("/check-access", authenticateToken, async (req, res) => {
                 email: user.email,
                 firstName: user.firstName,
                 lastName: user.lastName,
-                role: user.role,
+                role: normalizedRole,
                 isAdmin: user.isAdmin
             },
-            tokenUser: req.user,
+                tokenUser: req.user,
             hasAdminAccess,
             requiredRoles: ['admin', 'project_manager', 'supervisor']
         });
@@ -240,7 +251,8 @@ router.get("/users", authenticateToken, requireRole(['admin']), async (req, res)
 // POST /admin/users - Create a new user (Admin only)
 router.post("/users", authenticateToken, requireRole(['admin']), async (req, res) => {
     try {
-        const { firstName, lastName, email, password, role = 'employee', jobName } = req.body;
+        let { firstName, lastName, email, password, role = 'employee', jobName } = req.body;
+        role = role ? String(role).toLowerCase() : 'employee';
         const newUser = await User.create({
             firstName,
             lastName,
