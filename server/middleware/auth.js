@@ -32,7 +32,8 @@ export const authenticateToken = (req, res, next) => {
   jwt.verify(token, JWT_SECRET, (err, user) => {
     if (err) {
       if (!isProd) console.log('❌ Token verification failed:', err.message);
-      return res.status(403).json({ error: "Invalid or expired token" });
+      // Use 401 for invalid/expired token so client clears and re-authenticates
+      return res.status(401).json({ error: "Invalid or expired token" });
     }
     if (!isProd) {
       console.log('✅ Token verified for user:', user.email);
@@ -86,7 +87,8 @@ export const requireAdmin = async (req, res, next) => {
     req.user = user;
     next();
   } catch (error) {
-    return res.status(403).json({ error: "Invalid or expired token" });
+  // Token verification failure -> 401 (unauthorized)
+  return res.status(401).json({ error: "Invalid or expired token" });
   }
 };
 
@@ -122,7 +124,7 @@ export const requireAdminOrSelf = async (req, res, next) => {
     req.user = user;
     next();
   } catch (error) {
-    return res.status(403).json({ error: "Invalid or expired token" });
+  return res.status(401).json({ error: "Invalid or expired token" });
   }
 };
 

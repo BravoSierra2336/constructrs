@@ -32,13 +32,17 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
-      // Token expired or invalid - clear all possible token storage
+    const status = error.response?.status;
+    const errMsg = error.response?.data?.error;
+    if (status === 401 || (status === 403 && errMsg === 'Invalid or expired token')) {
+      // Clear stored auth artifacts and force re-login
       localStorage.removeItem('token');
       localStorage.removeItem('authToken');
       localStorage.removeItem('userData');
       delete axios.defaults.headers.common['Authorization'];
-      window.location.href = '/login';
+      if (window.location.pathname !== '/login') {
+        window.location.href = '/login';
+      }
     }
     return Promise.reject(error);
   }
